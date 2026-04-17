@@ -41,7 +41,7 @@ const Brochure = () => {
       };
 
       // Backend me request save ho rahi hai
-      await axios.post("http://localhost:5000/api/brochures", payload);
+      await axios.post("https://shonalinetworks.com/api/brochures", payload);
 
       setTimeout(() => {
         setIsDownloading(false);

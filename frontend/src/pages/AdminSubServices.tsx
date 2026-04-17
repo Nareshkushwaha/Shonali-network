@@ -63,7 +63,7 @@ const AdminSubServices = () => {
         cta: ctaText
       };
 
-      const res = await axios.post("http://localhost:5000/api/sub-services", payload, {
+      const res = await axios.post("https://shonalinetworks.com/api/sub-services", payload, {
         headers: { Authorization: `Bearer ${token}` } 
       });
 
