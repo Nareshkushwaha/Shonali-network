@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 230 80% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 270 70% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 90%;
+    --input: 220 13% 90%;
+    --ring: 230 80% 56%;
+
+    --radius: 1rem;
+
+    --neon-blue: 230 80% 56%;
+    --neon-purple: 270 70% 60%;
+    --neon-cyan: 190 90% 50%;
+    --surface-glass: 0 0% 100%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/70 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+  .glass-card-dark {
+    background: linear-gradient(135deg, hsl(222 47% 11% / 0.9), hsl(230 40% 18% / 0.8));
+    @apply backdrop-blur-xl border border-border/20 shadow-lg;
+  }
+  .neon-glow {
+    box-shadow: 0 0 20px hsl(var(--neon-blue) / 0.3), 0 0 40px hsl(var(--neon-blue) / 0.1);
+  }
+  .neon-glow-purple {
+    box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.3), 0 0 40px hsl(var(--neon-purple) / 0.1);
+  }
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--neon-blue)), hsl(var(--neon-purple)));
+  }
+  .section-padding {
+    @apply py-16 md:py-20;
+  }
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    transform: translateY(-6px);
+  }
+
+  /* --- Naya Admin Dashboard CSS Yaha Se Start Hai --- */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    display: inline-block;
+    line-height: 1;
+  }
+  .signature-gradient {
+    background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);
+  }
+  .ambient-shadow {
+    box-shadow: 0px 12px 32px -4px rgba(25, 28, 30, 0.04), 0px 4px 8px -2px rgba(25, 28, 30, 0.02);
+  }
+}
+
+/* Add these to the bottom of your index.css */
+.blueprint-grid {
+    background-color: #f8fafc; /* light slate background */
+    background-size: 40px 40px;
+    background-image: 
+        linear-gradient(to right, rgba(37, 99, 235, 0.05) 1px, transparent 1px), 
+        linear-gradient(to bottom, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+}
+
+.architectural-gauge {
+    stroke-dasharray: 283; /* Circumference of circle */
+    stroke-dashoffset: 70;  /* Adjust this to change fill level */
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset 1s ease-in-out;
+}
+
+.blueprint-grid {
+    background-color: #f8fafc;
+    background-size: 40px 40px;
+    background-image: 
+        linear-gradient(to right, rgba(37, 99, 235, 0.05) 1px, transparent 1px), 
+        linear-gradient(to bottom, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+}
+
