@@ -83,7 +83,7 @@ const AdminSubServices = () => {
     if(!window.confirm("Are you sure you want to delete this service?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/sub-services/${id}`, {
+      await axios.delete(`https://shonalinetworks.com/api/sub-services/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       deleteService(id); 
