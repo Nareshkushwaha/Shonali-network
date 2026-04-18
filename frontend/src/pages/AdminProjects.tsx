@@ -45,7 +45,6 @@ const AdminProjects = () => {
     <AdminLayout>
       <main className="pt-8 px-6 pb-12 min-h-screen max-w-7xl mx-auto">
         
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">Project Portfolio</h2>
@@ -62,7 +61,6 @@ const AdminProjects = () => {
           </button>
         </div>
 
-        {/* Compact Form */}
         {showForm && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 animate-in fade-in slide-in-from-top-2">
             <h3 className="text-lg font-bold mb-5 text-slate-800">New Project Entry</h3>
@@ -91,14 +89,12 @@ const AdminProjects = () => {
           </div>
         )}
 
-        {/* Stats Preview Bar */}
         <div className="bg-slate-50 rounded-xl px-4 py-3 mb-8 border border-slate-100 flex items-center">
              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
                {searchQuery ? `FOUND: ${filteredProjects.length}` : `TOTAL: ${projects.length} PROJECTS`}
              </span>
         </div>
 
-        {/* COMPACT PROJECT GRID */}
         {filteredProjects.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-200">
             <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">folder_open</span>
@@ -108,7 +104,6 @@ const AdminProjects = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProjects.map((project) => (
               <div key={project.id} className="group bg-white rounded-2xl overflow-hidden flex flex-col shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-md">
-                {/* Fixed Smaller Image Height */}
                 <div className="relative h-44 overflow-hidden bg-slate-100">
                   <img alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src={project.image} />
                   <div className="absolute top-3 left-3">

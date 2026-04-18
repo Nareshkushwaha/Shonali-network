@@ -56,7 +56,6 @@ const Projects = () => {
               <p>No projects to show yet. Add them from the Admin Panel!</p>
             </div>
           ) : (
-            // 🔥 Grid columns badha diye (lg:grid-cols-4) taki boxes chote ho jaye
             <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
                 {filtered.map((p) => (
@@ -71,15 +70,12 @@ const Projects = () => {
                   >
                     {/* Fixed Height Image Wrapper */}
                     <div className="relative h-40 overflow-hidden bg-slate-100">
+                      {/* 🔥 FIX: Dummy 'onError' logic hata diya hai. Ab wahi dikhega jo Admin dalega */}
                       <img
                         src={p.image}
                         alt={p.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&q=80";
-                        }}
                       />
-                      {/* 🔥 Category Badge Over Image (Modern Look) */}
                       <div className="absolute top-3 left-3 z-10">
                         <span className="px-2.5 py-1 bg-background/95 backdrop-blur-md rounded-md text-[10px] font-extrabold text-primary tracking-widest uppercase shadow-sm">
                           {p.category}
@@ -94,7 +90,6 @@ const Projects = () => {
                         {p.description}
                       </p>
                       
-                      {/* Optional Footer/Divider for balance */}
                       <div className="mt-auto pt-3 border-t border-border/50 flex items-center justify-between">
                          <span className="text-[10px] font-bold text-muted-foreground tracking-widest uppercase">View Details</span>
                          <span className="material-symbols-outlined text-sm text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -110,5 +105,5 @@ const Projects = () => {
     </Layout>
   );
 };
-
+ 
 export default Projects;
