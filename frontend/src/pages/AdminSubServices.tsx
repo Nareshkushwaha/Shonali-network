@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData, API_URL } from "../context/DataContext"; // 🔥 Yahan API_URL import kiya
+import { useData, API_URL } from "../context/DataContext"; 
 import axios from "axios"; 
 
 const AdminSubServices = () => {
-  // 🔥 DYNAMIC SEARCH: context se services aur searchQuery nikal li
   const { services, addService, deleteService, searchQuery } = useData();
   
-  // --- FORM STATES ---
   const [parentService, setParentService] = useState(""); 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -28,7 +26,6 @@ const AdminSubServices = () => {
     "Education Services",
   ];
 
-  // 🔥 FILTER LOGIC: Top Search Bar के हिसाब से सब-सर्विसेज फ़िल्टर होंगी
   const filteredServices = services.filter((srv: any) => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -63,7 +60,6 @@ const AdminSubServices = () => {
         cta: ctaText
       };
 
-      // 🔥 FIX: Yahan hardcoded URL hata kar API_URL laga diya
       const res = await axios.post(`${API_URL}/sub-services`, payload, {
         headers: { Authorization: `Bearer ${token}` } 
       });
@@ -85,7 +81,6 @@ const AdminSubServices = () => {
     try {
       const token = localStorage.getItem("token");
       
-      // 🔥 FIX: Yahan bhi hardcoded URL hata kar API_URL laga diya
       await axios.delete(`${API_URL}/sub-services/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -100,24 +95,25 @@ const AdminSubServices = () => {
 
   return (
     <AdminLayout>
-      <main className="pt-10 px-8 pb-12 min-h-screen">
+      {/* 🔥 Mobile Padding Fix: px-4 md:px-8 */}
+      <main className="pt-10 px-4 md:px-8 pb-12 min-h-screen">
         
-        {/* Top Title Area */}
-        <div className="mb-8 flex items-end justify-between">
+        {/* Top Title Area 🔥 Mobile Flex Fix: flex-col md:flex-row */}
+        <div className="mb-8 flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
           <div>
             <nav className="flex items-center space-x-2 text-xs font-medium text-slate-400 mb-2">
               <span>Admin</span>
               <span className="material-symbols-outlined text-[10px]">chevron_right</span>
               <span className="text-blue-600">Sub-Services Architecture</span>
             </nav>
-            <h2 className="text-4xl font-extrabold tracking-tight text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
               Sub-Services <span className="text-blue-600 font-light">Builder</span>
             </h2>
           </div>
-          <div className="flex space-x-3">
+          <div className="w-full md:w-auto">
             <button 
               onClick={handleClearForm}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/20 hover:opacity-90 transition-all scale-[1.02] active:scale-95 flex items-center"
+              className="w-full md:w-auto justify-center px-6 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/20 hover:opacity-90 transition-all scale-[1.02] active:scale-95 flex items-center"
             >
               <span className="material-symbols-outlined mr-2 text-sm">add</span>
               New Sub-Service
@@ -130,7 +126,7 @@ const AdminSubServices = () => {
           {/* EDITOR SIDEBAR & FORM */}
           <div className="col-span-12 lg:col-span-7 space-y-6">
             
-            {/* 🔥 DYNAMIC TABS: Ab Search Query ke hisaab se filter honge */}
+            {/* DYNAMIC TABS */}
             <div className="flex space-x-4 overflow-x-auto no-scrollbar pb-2">
               {filteredServices.map((srv: any) => (
                 <button key={srv.id} className="flex-shrink-0 px-5 py-3 bg-white border border-slate-200 text-slate-600 rounded-xl hover:border-blue-300 transition-all flex items-center gap-2 group shadow-sm">
@@ -149,10 +145,10 @@ const AdminSubServices = () => {
             </div>
 
             {/* Configuration Form */}
-            <section className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200/60">
+            <section className="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-slate-200/60">
               <div className="flex items-center mb-8 pb-4 border-b border-slate-100">
                 <span className="material-symbols-outlined text-blue-600 mr-3">tune</span>
-                <h3 className="text-xl font-bold tracking-tight">Configuration Engine</h3>
+                <h3 className="text-lg md:text-xl font-bold tracking-tight">Configuration Engine</h3>
               </div>
               
               <div className="space-y-6">
@@ -176,7 +172,8 @@ const AdminSubServices = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 pt-2">
+                {/* 🔥 Mobile Grid Fix: grid-cols-1 md:grid-cols-2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase ml-1">Sub-Service Title</label>
                     <input 
@@ -207,7 +204,8 @@ const AdminSubServices = () => {
                   ></textarea>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                {/* 🔥 Mobile Grid Fix: grid-cols-1 md:grid-cols-2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-500 uppercase ml-1">Core Features (Comma Separated)</label>
                     <input 
@@ -227,13 +225,14 @@ const AdminSubServices = () => {
                 </div>
               </div>
 
-              <div className="mt-10 flex justify-between items-center border-t border-slate-100 pt-6">
-                <button onClick={handleClearForm} className="text-slate-400 font-semibold text-sm flex items-center hover:text-red-500 transition-colors">
+              {/* 🔥 Mobile Button Fix: Stack on mobile, side-by-side on desktop */}
+              <div className="mt-10 flex flex-col-reverse md:flex-row justify-between items-center border-t border-slate-100 pt-6 gap-4">
+                <button onClick={handleClearForm} className="w-full md:w-auto justify-center text-slate-400 font-semibold text-sm flex items-center hover:text-red-500 transition-colors py-2">
                   <span className="material-symbols-outlined mr-1 text-sm">delete_sweep</span>
                   Clear Form
                 </button>
                 <button 
-                  className="px-8 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2" 
+                  className="w-full md:w-auto justify-center px-8 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-md shadow-blue-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2" 
                   onClick={handleSave}
                 >
                   <span className="material-symbols-outlined text-sm">publish</span>
@@ -253,9 +252,10 @@ const AdminSubServices = () => {
                 </h3>
               </div>
 
-              <div className="bg-slate-100/50 rounded-[2rem] p-8 aspect-[4/5] border-2 border-white shadow-inner flex items-center justify-center relative overflow-hidden group">
+              {/* 🔥 Mobile Preview Container Fix: Adjusted padding & aspect ratio */}
+              <div className="bg-slate-100/50 rounded-[2rem] p-4 sm:p-8 aspect-auto sm:aspect-[4/5] min-h-[500px] sm:min-h-[auto] border-2 border-white shadow-inner flex items-center justify-center relative overflow-hidden group">
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
-                <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative z-10 overflow-hidden border border-slate-100">
+                <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl relative z-10 overflow-hidden border border-slate-100 mx-auto">
                   
                   {parentService && (
                     <div className="absolute top-4 left-4 z-20">
@@ -265,18 +265,18 @@ const AdminSubServices = () => {
                     </div>
                   )}
 
-                  <div className="relative h-40 bg-slate-800">
+                  <div className="relative h-32 sm:h-40 bg-slate-800">
                     <img className="w-full h-full object-cover opacity-80" alt="Preview Placeholder" src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=500&q=80" />
                     <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
                   </div>
                   
-                  <div className="p-8 space-y-4">
+                  <div className="p-6 sm:p-8 space-y-4">
                     <div>
-                      <div className="flex justify-between items-start mb-1">
-                        <h4 className="text-2xl font-extrabold tracking-tight text-slate-900 leading-none">{title || "Sub Service Name"}</h4>
-                        <span className="text-blue-600 font-bold text-lg">₹{price || "0"}</span>
+                      <div className="flex justify-between items-start mb-1 gap-2">
+                        <h4 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900 leading-none break-words">{title || "Sub Service Name"}</h4>
+                        <span className="text-blue-600 font-bold text-base sm:text-lg shrink-0">₹{price || "0"}</span>
                       </div>
-                      <p className="text-sm text-slate-500 leading-relaxed mt-2 line-clamp-3">
+                      <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mt-2 line-clamp-3">
                         {description || "Enter a description in the form to see the preview."}
                       </p>
                     </div>
@@ -293,7 +293,7 @@ const AdminSubServices = () => {
                       </ul>
                     </div>
                     
-                    <button className="w-full py-3.5 mt-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30">
+                    <button className="w-full py-3 sm:py-3.5 mt-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 text-sm sm:text-base">
                       {ctaText}
                     </button>
                   </div>
