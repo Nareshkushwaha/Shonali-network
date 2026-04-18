@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../context/DataContext"; 
 
 const Brochure = () => {
   const [name, setName] = useState("");
@@ -12,16 +13,14 @@ const Brochure = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);
   
-  // 🔥 REAL LOGIC: Check if admin has uploaded a brochure
   const [isAvailable, setIsAvailable] = useState(false);
   const [documentName, setDocumentName] = useState("Company Brochure");
 
   useEffect(() => {
-    // Check local storage to see if admin uploaded it from Admin Panel
     const activeFile = localStorage.getItem("activeBrochure");
     if (activeFile) {
       setIsAvailable(true);
-      setDocumentName(activeFile); // Jo file upload hui hai, wahi naam use karenge
+      setDocumentName(activeFile); 
     }
   }, []);
 
@@ -37,26 +36,22 @@ const Brochure = () => {
         company: company || "Independent",
         documentName: documentName,
         email: email,
-        date: new Date().toISOString()
       };
 
-      // Backend me request save ho rahi hai
-      await axios.post("https://shonalinetworks.com/api/brochures", payload);
+      await axios.post(`${API_URL}/brochures`, payload);
 
       setTimeout(() => {
         setIsDownloading(false);
         setDownloadComplete(true);
         
-        // --- DIRECT DOWNLOAD LOGIC ---
-        // Apni actual PDF file ko frontend ke 'public' folder me 'brochure.pdf' naam se save zaroor karna
+        // 🔥 FIX: Ab ye "brochure.pdf" ki jagah exact us file ko dhoondhega jo upload hui thi (e.g. /Patna High Court.pdf)
         const link = document.createElement("a");
-        link.href = "/brochure.pdf"; 
+        link.href = `/${documentName}`; // <-- Ye line dynamic kardi hai
         link.setAttribute("download", documentName);
         document.body.appendChild(link);
         link.click();
         link.parentNode?.removeChild(link);
         
-        // Reset form
         setTimeout(() => {
             setDownloadComplete(false);
             setName("");
@@ -78,7 +73,6 @@ const Brochure = () => {
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             
-            {/* Left Side: Copy */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
               <div className="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-6 shadow-inner">
                 <FileText className="w-8 h-8 text-blue-600" />
@@ -104,7 +98,6 @@ const Brochure = () => {
               </div>
             </motion.div>
 
-            {/* Right Side: Lead Capture Form */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
               <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 relative overflow-hidden">
                 <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-50 rounded-full blur-3xl"></div>
@@ -112,7 +105,6 @@ const Brochure = () => {
                 <div className="relative z-10">
                   <h3 className="text-2xl font-bold mb-2 text-slate-900">Request Access</h3>
                   
-                  {/* 🔥 UI CHECK: Available hai ya nahi */}
                   {!isAvailable ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center mt-4">
                       <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />

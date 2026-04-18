@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { API_URL } from "../context/DataContext"; // 🔥 FIX 1: API_URL yahan import kiya
 
 const AdminLogin = () => {
   const [email, setEmail] = useState("");
@@ -22,7 +23,10 @@ const AdminLogin = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("https://shonalinetworks.com/api/admin/login", {
+      
+      // 🔥 FIX 2: Live URL hata kar API_URL laga diya
+      // Ab local pe local API hit hogi, Live pe Live API!
+      const res = await axios.post(`${API_URL}/admin/login`, {
         email,
         password,
       });
@@ -49,7 +53,7 @@ const AdminLogin = () => {
       {/* Login Form Card */}
       <div className="w-full max-w-md bg-white p-10 rounded-[2rem] shadow-xl border border-slate-100">
         
-        {/* Chota Icon (Kyunki left branding hata di) */}
+        {/* Chota Icon */}
         <div className="flex justify-center mb-6">
           <div className="w-16 h-16 bg-gradient-to-tr from-blue-500 to-cyan-400 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
             <span className="material-symbols-outlined text-4xl text-white">campaign</span>
@@ -113,7 +117,7 @@ const AdminLogin = () => {
         </form>
       </div>
 
-      {/* Troubleshooting Button (Ab card ke theek neeche center me) */}
+      {/* Troubleshooting Button */}
       <button 
         onClick={forceClearData}
         className="mt-8 text-xs text-slate-400 hover:text-red-500 underline flex items-center gap-1 transition-colors"

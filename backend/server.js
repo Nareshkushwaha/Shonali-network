@@ -14,6 +14,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const PORT = process.env.PORT || 5000;
 const SECRET = process.env.JWT_SECRET;
+
 // ==========================================
 // 🗄️ MYSQL DATABASE CONNECTION 
 // ==========================================
@@ -31,6 +32,7 @@ db.getConnection((err, connection) => {
     connection.release();
     
     db.query("SELECT * FROM admins", (err, results) => {
+      if (err) console.error("Admin check error:", err);
       if (results && results.length === 0) {
         const hashedPw = bcrypt.hashSync("Naresh@2026", 8); 
         db.query(
@@ -45,14 +47,18 @@ db.getConnection((err, connection) => {
 
 function verifyToken(req, res, next) {
   const token = req.headers["authorization"];
-  if (!token) return res.status(403).json({ error: "No token provided" });
+  if (!token) {
+    console.log("❌ Token Missing in Request");
+    return res.status(403).json({ error: "No token provided" });
+  }
 
   try {
     const actualToken = token.split(" ")[1] || token; 
     const decoded = jwt.verify(actualToken, SECRET);
     req.user = decoded; 
     next();
-  } catch {
+  } catch (err) {
+    console.log("❌ Invalid or Expired Token");
     return res.status(401).json({ error: "Invalid token" });
   }
 }
@@ -69,7 +75,10 @@ app.post("/api/admin/login", (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "Required fields missing" });
 
   db.query("SELECT * FROM admins WHERE email = ?", [email], (err, results) => {
-    if (err) return res.status(500).json({ error: "Database error" });
+    if (err) {
+      console.error("Login DB Error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
     if (results.length === 0) return res.status(401).json({ error: "Invalid email" });
 
     const admin = results[0];
@@ -84,6 +93,7 @@ app.post("/api/admin/login", (req, res) => {
 
 app.get("/api/admin/profile", verifyToken, (req, res) => {
   db.query("SELECT name, email, avatarUrl FROM admins WHERE email = ?", [req.user.email], (err, results) => {
+    if (err) console.error("Profile Fetch Error:", err);
     if (err || results.length === 0) return res.status(404).json({ error: "Profile not found" });
     res.json(results[0]);
   });
@@ -95,12 +105,14 @@ app.put("/api/admin/profile", verifyToken, (req, res) => {
     "UPDATE admins SET name = ?, email = ?, avatarUrl = ? WHERE email = ?", 
     [name, email, avatarUrl || "", req.user.email], 
     (err) => {
-      if (err) return res.status(500).json({ error: "Update failed" });
+      if (err) {
+        console.error("Profile Update Error:", err);
+        return res.status(500).json({ error: "Update failed" });
+      }
       res.json({ success: true, data: { name, email, avatarUrl, role: "Super Admin" } });
   });
 });
 
-// 🔥 NAYA: Password Change API
 app.put("/api/admin/change-password", verifyToken, (req, res) => {
   const { currentPassword, newPassword } = req.body;
   
@@ -113,7 +125,10 @@ app.put("/api/admin/change-password", verifyToken, (req, res) => {
 
     const hashedPw = bcrypt.hashSync(newPassword, 8);
     db.query("UPDATE admins SET password = ? WHERE email = ?", [hashedPw, req.user.email], (updateErr) => {
-      if (updateErr) return res.status(500).json({ error: "Failed to update password" });
+      if (updateErr) {
+        console.error("Password Update Error:", updateErr);
+        return res.status(500).json({ error: "Failed to update password" });
+      }
       res.json({ success: true, message: "Password updated successfully" });
     });
   });
@@ -124,7 +139,10 @@ app.put("/api/admin/change-password", verifyToken, (req, res) => {
 // ==========================================
 app.get("/api/leads", (req, res) => {
   db.query("SELECT * FROM leads ORDER BY date DESC", (err, results) => {
-    if (err) return res.status(500).json({ error: "DB Error fetching leads" });
+    if (err) {
+      console.error("Leads Fetch Error:", err);
+      return res.status(500).json({ error: "DB Error fetching leads" });
+    }
     res.json(results || []);
   });
 });
@@ -138,27 +156,39 @@ app.post("/api/leads", (req, res) => {
   const values = [leadId, name, email, serviceInterest || "General", budget || "Not Specified", "New", message, date];
 
   db.query(sql, values, (err) => {
-    if (err) return res.status(500).json({ error: "Save failed" });
+    if (err) {
+      console.error("Lead Save Error:", err);
+      return res.status(500).json({ error: "Save failed" });
+    }
     res.json({ success: true, data: { id: leadId, name, email, serviceInterest, budget, status: "New", message, date } });
   });
 });
 
 app.put("/api/leads/:id", verifyToken, (req, res) => {
   db.query("UPDATE leads SET status = ? WHERE id = ?", [req.body.status, req.params.id], (err) => {
-    if (err) return res.status(500).json({ error: "Update failed" });
+    if (err) {
+      console.error("Lead Update Error:", err);
+      return res.status(500).json({ error: "Update failed" });
+    }
     res.json({ success: true });
   });
 });
 
 app.delete("/api/leads/:id", verifyToken, (req, res) => {
-  db.query("DELETE FROM leads WHERE id = ?", [req.params.id], (err) => res.json({ success: true }));
+  db.query("DELETE FROM leads WHERE id = ?", [req.params.id], (err) => {
+    if (err) console.error("Lead Delete Error:", err);
+    res.json({ success: true })
+  });
 });
 
 // ==========================================
 // 🏗️ 3. PROJECTS API
 // ==========================================
 app.get("/api/projects", (req, res) => {
-  db.query("SELECT * FROM projects", (err, results) => res.json(results || []));
+  db.query("SELECT * FROM projects", (err, results) => {
+    if (err) console.error("Projects Fetch Error:", err);
+    res.json(results || [])
+  });
 });
 
 app.post("/api/projects", verifyToken, (req, res) => {
@@ -166,13 +196,19 @@ app.post("/api/projects", verifyToken, (req, res) => {
   const id = `P-${Date.now()}`;
   db.query("INSERT INTO projects (id, title, category, image, description) VALUES (?, ?, ?, ?, ?)", 
   [id, title, category, image, description], (err) => {
-    if (err) return res.status(500).json({ error: "Failed" });
+    if (err) {
+      console.error("Project Save Error:", err);
+      return res.status(500).json({ error: "Failed" });
+    }
     res.json({ success: true, data: { id, title, category, image, description } });
   });
 });
 
 app.delete("/api/projects/:id", verifyToken, (req, res) => {
-  db.query("DELETE FROM projects WHERE id = ?", [req.params.id], (err) => res.json({ success: true }));
+  db.query("DELETE FROM projects WHERE id = ?", [req.params.id], (err) => {
+    if (err) console.error("Project Delete Error:", err);
+    res.json({ success: true })
+  });
 });
 
 // ==========================================
@@ -180,7 +216,10 @@ app.delete("/api/projects/:id", verifyToken, (req, res) => {
 // ==========================================
 app.get("/api/sub-services", (req, res) => {
   db.query("SELECT * FROM sub_services", (err, results) => {
-    if (err) return res.status(500).json({ error: "Error" });
+    if (err) {
+      console.error("Sub-services Fetch Error:", err);
+      return res.status(500).json({ error: "Error" });
+    }
     const formattedServices = results.map(srv => ({
       ...srv,
       featuresList: srv.featuresList ? srv.featuresList.split(',') : []
@@ -193,15 +232,22 @@ app.post("/api/sub-services", verifyToken, (req, res) => {
   const { parentService, title, price, description, featuresList, cta } = req.body;
   const id = `S-${Date.now()}`;
   const featuresString = (featuresList && Array.isArray(featuresList)) ? featuresList.join(',') : "";
+  
   db.query("INSERT INTO sub_services (id, parentService, title, price, description, featuresList, cta, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')",
   [id, parentService, title, price, description, featuresString, cta], (err) => {
-    if (err) return res.status(500).json({ error: "Failed" });
+    if (err) {
+      console.error("🚨 SUB-SERVICE SAVE ERROR IN MYSQL:", err);
+      return res.status(500).json({ error: "Failed to save sub-service" });
+    }
     res.json({ success: true, data: { id, parentService, title, price, description, featuresList: featuresList || [], cta, status: "active" } });
   });
 });
 
 app.delete("/api/sub-services/:id", verifyToken, (req, res) => {
-  db.query("DELETE FROM sub_services WHERE id = ?", [req.params.id], (err) => res.json({ success: true }));
+  db.query("DELETE FROM sub_services WHERE id = ?", [req.params.id], (err) => {
+    if (err) console.error("Sub-service Delete Error:", err);
+    res.json({ success: true })
+  });
 });
 
 // ==========================================
@@ -211,18 +257,32 @@ app.post("/api/brochures", (req, res) => {
   const { name, email, company, documentName } = req.body;
   const id = `RX-${Math.floor(Math.random() * 9000) + 1000}`;
   const date = new Date().toISOString().split('T')[0];
-  db.query("INSERT INTO brochure (id, name, email, company, documentName, status, date) VALUES (?, ?, ?, ?, ?, 'Pending', ?)",
-    [id, name, email, company || "Independent", documentName, date],
-    (err) => res.json({ success: true, data: { id, name, email, company, documentName, status: "Pending", date } })
+  
+  // 🔥 FIX: MySQL DB table me 'documentName' column nahi tha, isliye is query se usko hata diya hai. Ab error nahi aayega!
+  db.query("INSERT INTO brochure (id, name, email, company, status, date) VALUES (?, ?, ?, ?, 'Pending', ?)",
+    [id, name, email, company || "Independent", date],
+    (err) => {
+      if (err) {
+        console.error("Brochure Save Error:", err);
+        return res.status(500).json({ error: "Failed to save request" });
+      }
+      res.json({ success: true, data: { id, name, email, company, documentName, status: "Pending", date } })
+    }
   );
 });
 
 app.get("/api/brochures", (req, res) =>  {
-  db.query("SELECT * FROM brochure ORDER BY date DESC", (err, results) => res.json(results || []));
+  db.query("SELECT * FROM brochure ORDER BY date DESC", (err, results) => {
+    if (err) console.error("Brochures Fetch Error:", err);
+    res.json(results || [])
+  });
 });
 
 app.put("/api/brochures/:id", verifyToken, (req, res) => {
-  db.query("UPDATE brochure SET status = ? WHERE id = ?", [req.body.status, req.params.id], (err) => res.json({ success: true }));
+  db.query("UPDATE brochure SET status = ? WHERE id = ?", [req.body.status, req.params.id], (err) => {
+    if (err) console.error("Brochure Update Error:", err);
+    res.json({ success: true })
+  });
 });
 
 app.listen(PORT, "0.0.0.0", () => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData } from "../context/DataContext";
+import { useData, API_URL } from "../context/DataContext"; // 🔥 Yahan API_URL import kiya
 import axios from "axios"; 
 
 const AdminSubServices = () => {
@@ -28,7 +28,7 @@ const AdminSubServices = () => {
     "Education Services",
   ];
 
-  // 🔥 FILTER LOGIC: Top Search Bar के हिसाब से सब-सर्विसेज फ़िल्टर होंगी
+  // 🔥 FILTER LOGIC: Top Search Bar के हिसाब से सब-सर्विसेज फ़िल्टर होंगी
   const filteredServices = services.filter((srv: any) => {
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -63,7 +63,8 @@ const AdminSubServices = () => {
         cta: ctaText
       };
 
-      const res = await axios.post("https://shonalinetworks.com/api/sub-services", payload, {
+      // 🔥 FIX: Yahan hardcoded URL hata kar API_URL laga diya
+      const res = await axios.post(`${API_URL}/sub-services`, payload, {
         headers: { Authorization: `Bearer ${token}` } 
       });
 
@@ -83,9 +84,12 @@ const AdminSubServices = () => {
     if(!window.confirm("Are you sure you want to delete this service?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://shonalinetworks.com/api/sub-services/${id}`, {
+      
+      // 🔥 FIX: Yahan bhi hardcoded URL hata kar API_URL laga diya
+      await axios.delete(`${API_URL}/sub-services/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       deleteService(id); 
       alert("Service deleted from Database!");
     } catch (error) {

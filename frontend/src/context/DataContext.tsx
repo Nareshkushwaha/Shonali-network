@@ -15,7 +15,7 @@ type DataContextType = {
   updateUser: (user: Partial<UserProfile>) => void;
   changePassword: (oldPass: string, newPass: string) => Promise<{success: boolean; message?: string; error?: string}>;
   searchQuery: string; 
-  setSearchQuery: (query: string) => void; // 🔥 FIXED: Ab ye search bar ko handle karega
+  setSearchQuery: (query: string) => void; 
   services: SubService[]; 
   addService: (service: SubService) => void; 
   deleteService: (id: string) => void;
@@ -33,7 +33,14 @@ type DataContextType = {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const API_URL = "https://shonalinetworks.com/api";
+// ==========================
+// 🔥 AUTO-SWITCH URL LOGIC
+// ==========================
+const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+export const API_URL = isLocalhost 
+  ? "http://localhost:5000/api" 
+  : "https://shonalinetworks.com/api";
 
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   
@@ -41,7 +48,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   // 2. STATES
   // ==========================
   const [currentUser, setCurrentUser] = useState<UserProfile>({ name: "Admin", email: "admin@shonalinetwork.com", role: "Super Admin", avatarUrl: "" });
-  const [searchQuery, setSearchQuery] = useState(""); // 🔥 Search state
+  const [searchQuery, setSearchQuery] = useState(""); 
   const [services, setServices] = useState<SubService[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -170,7 +177,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
       updateUser, 
       changePassword,
       searchQuery, 
-      setSearchQuery, // 🔥 Ab ye export ho raha hai!
+      setSearchQuery, 
       services, 
       addService, 
       deleteService, 
