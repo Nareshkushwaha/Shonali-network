@@ -1,19 +1,15 @@
 import React, { useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData, Lead } from "../context/DataContext"; 
+import { useData } from "../context/DataContext"; 
 
 const AdminLeads = () => {
-  // 🔥 DYNAMIC SEARCH: context se searchQuery nikal li
   const { leads, updateLeadStatus, deleteLead, searchQuery } = useData();
   
-  // FIX: Store ONLY the ID, not the entire object.
   const [selectedLeadId, setSelectedLeadId] = useState<string | number | null>(null);
   const [filterService, setFilterService] = useState<string>("All");
 
-  // Derive the selectedLead directly from the master 'leads' list
   const selectedLead = leads.find(l => l.id === selectedLeadId) || null;
 
-  // --- REAL FILTERING LOGIC (Search + Sidebar Filter) ---
   const filteredLeads = leads.filter((lead) => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
@@ -26,18 +22,21 @@ const AdminLeads = () => {
     return matchesSearch && matchesService;
   });
 
-  // --- DYNAMIC COUNTERS (Based on filtered data or master list) ---
   const newLeadsCount = leads.filter(l => l.status === "New").length;
   const contactedLeadsCount = leads.filter(l => l.status === "Contacted").length;
   const qualifiedLeadsCount = leads.filter(l => l.status === "Qualified").length;
   
   const wonLeads = leads.filter(l => l.status === "Won");
   
+  // 🔥 FIX: 10 Lakh wala calculation bug theek kiya. Ab sirf pehla number uthayega.
   const totalRevenue = wonLeads.reduce((total, lead) => {
-    const amountStr = lead.budget.replace(/[^0-9]/g, "");
-    let amount = parseInt(amountStr) || 0;
-    if (lead.budget.toLowerCase().includes('k') && amount < 1000) {
+    const match = lead.budget.match(/\d+/); // Extract only the first number
+    let amount = match ? parseInt(match[0]) : 0;
+    
+    if (lead.budget.toLowerCase().includes('k')) {
         amount = amount * 1000;
+    } else if (lead.budget.toLowerCase().includes('lakh') || lead.budget.toLowerCase().includes('l')) {
+        amount = amount * 100000;
     }
     return total + amount;
   }, 0);
@@ -47,11 +46,12 @@ const AdminLeads = () => {
     formattedRevenue = `₹${(totalRevenue / 100000).toFixed(1)}L`;
   } else if (totalRevenue >= 1000) {
     formattedRevenue = `₹${(totalRevenue / 1000).toFixed(1)}k`;
+  } else if (totalRevenue === 0) {
+    formattedRevenue = "₹0";
   }
 
   const uniqueServices = ["All", ...Array.from(new Set(leads.map(l => l.serviceInterest)))];
 
-  // --- EXPORT DATA FUNCTION ---
   const handleExport = () => {
     if (leads.length === 0) {
       alert("No leads available to export!");
@@ -94,9 +94,7 @@ const AdminLeads = () => {
           </div>
         </div>
 
-        {/* Pipeline Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          {/* New Acquisition */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
             <p className="text-slate-500 text-sm font-medium mb-1">New Acquisition</p>
             <h3 className="text-3xl font-headline font-extrabold">{newLeadsCount}</h3>
@@ -104,7 +102,6 @@ const AdminLeads = () => {
               <div className="h-full bg-blue-600" style={{width: leads.length ? `${(newLeadsCount/leads.length)*100}%` : '0%'}}></div>
             </div>
           </div>
-          {/* In Dialogue */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
             <p className="text-slate-500 text-sm font-medium mb-1">In Dialogue</p>
             <h3 className="text-3xl font-headline font-extrabold">{contactedLeadsCount}</h3>
@@ -112,7 +109,6 @@ const AdminLeads = () => {
               <div className="h-full bg-blue-600" style={{width: leads.length ? `${(contactedLeadsCount/leads.length)*100}%` : '0%'}}></div>
             </div>
           </div>
-          {/* Qualified */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
             <p className="text-slate-500 text-sm font-medium mb-1">Qualified Architectures</p>
             <h3 className="text-3xl font-headline font-extrabold">{qualifiedLeadsCount}</h3>
@@ -120,7 +116,6 @@ const AdminLeads = () => {
               <div className="h-full bg-blue-600" style={{width: leads.length ? `${(qualifiedLeadsCount/leads.length)*100}%` : '0%'}}></div>
             </div>
           </div>
-          {/* Conversion */}
           <div className="bg-white p-6 rounded-xl border-2 border-blue-600/10 shadow-sm">
             <p className="text-slate-500 text-sm font-medium mb-1 text-blue-600">Conversion Total</p>
             <h3 className="text-3xl font-headline font-extrabold text-blue-600">{formattedRevenue}</h3>
@@ -128,7 +123,6 @@ const AdminLeads = () => {
         </div>
 
         <div className="grid grid-cols-12 gap-8">
-          {/* Leads Table */}
           <div className="col-span-12 lg:col-span-8 space-y-4">
             <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
               <table className="w-full text-left border-collapse">
@@ -187,7 +181,6 @@ const AdminLeads = () => {
               </table>
             </div>
 
-            {/* Selected Lead Details */}
             {selectedLead && (
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 mt-8 animate-in fade-in slide-in-from-bottom-4">
                 <div className="flex justify-between items-start mb-8">
@@ -198,10 +191,28 @@ const AdminLeads = () => {
                       <p className="text-sm text-slate-500 font-medium">{selectedLead.serviceInterest} • {selectedLead.budget} Budget</p>
                     </div>
                   </div>
+                  
+                  {/* 🔥 FIX: GMAIL BUTTON LOGIC CORRECTED HERE */}
                   <div className="flex gap-2">
-                    <a href={`mailto:${selectedLead.email}`} className="bg-blue-600 text-white p-2.5 rounded-lg hover:bg-blue-700 shadow-sm"><span className="material-symbols-outlined">mail</span></a>
-                    <button onClick={() => { deleteLead(selectedLead.id); setSelectedLeadId(null); }} className="bg-white border border-red-200 text-red-500 p-2.5 rounded-lg hover:bg-red-50"><span className="material-symbols-outlined">delete</span></button>
+                    <a 
+                      href={`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedLead.email}`} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                      title="Send Email via Gmail"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">mail</span>
+                    </a>
+                    
+                    <button 
+                      onClick={() => { deleteLead(selectedLead.id); setSelectedLeadId(null); }} 
+                      className="bg-white border border-red-200 text-red-500 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors"
+                      title="Delete Lead"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
                   </div>
+                  
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 border-t border-slate-100 pt-6">
@@ -211,16 +222,15 @@ const AdminLeads = () => {
                   </div>
                   <div className="flex flex-col gap-3">
                     <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Update Status</h5>
-                    <button onClick={() => updateLeadStatus(selectedLead.id, "Contacted")} className={`p-3 rounded-xl border text-sm font-bold ${selectedLead.status === 'Contacted' ? 'bg-blue-600 text-white' : 'bg-slate-50'}`}>Mark Contacted</button>
-                    <button onClick={() => updateLeadStatus(selectedLead.id, "Qualified")} className={`p-3 rounded-xl border text-sm font-bold ${selectedLead.status === 'Qualified' ? 'bg-green-600 text-white' : 'bg-slate-50'}`}>Mark Qualified</button>
-                    <button onClick={() => updateLeadStatus(selectedLead.id, "Won")} className={`p-3 rounded-xl border text-sm font-bold ${selectedLead.status === 'Won' ? 'bg-indigo-600 text-white' : 'bg-slate-50'}`}>Project Won!</button>
+                    <button onClick={() => updateLeadStatus(selectedLead.id, "Contacted")} className={`p-3 rounded-xl border text-sm font-bold transition-all ${selectedLead.status === 'Contacted' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 hover:bg-slate-100'}`}>Mark Contacted</button>
+                    <button onClick={() => updateLeadStatus(selectedLead.id, "Qualified")} className={`p-3 rounded-xl border text-sm font-bold transition-all ${selectedLead.status === 'Qualified' ? 'bg-green-600 text-white border-green-600' : 'bg-slate-50 hover:bg-slate-100'}`}>Mark Qualified</button>
+                    <button onClick={() => updateLeadStatus(selectedLead.id, "Won")} className={`p-3 rounded-xl border text-sm font-bold transition-all ${selectedLead.status === 'Won' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 hover:bg-slate-100'}`}>Project Won!</button>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Filters Sidebar */}
           <div className="col-span-12 lg:col-span-4 space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
               <h4 className="font-headline font-extrabold text-lg mb-4 text-slate-900">Filter Leads</h4>
@@ -229,7 +239,7 @@ const AdminLeads = () => {
                   <button 
                     key={service}
                     onClick={() => setFilterService(service)}
-                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold border transition-all ${filterService === service ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white'}`}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold border transition-all ${filterService === service ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white hover:bg-slate-50'}`}
                   >
                     {service}
                     <span className="float-right text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">

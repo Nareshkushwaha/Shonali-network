@@ -4,10 +4,8 @@ import AdminLayout from "../components/AdminLayout";
 import { useData } from "../context/DataContext";
 
 const AdminDashboard = () => {
-  // 🔥 DYNAMIC SEARCH: searchQuery import kiya
   const { services, projects, leads, searchQuery } = useData();
 
-  // 🔥 FILTER LOGIC: Search query ke hisaab se data filter karna
   const searchLower = searchQuery.toLowerCase();
 
   const filteredServices = services.filter(s => 
@@ -26,7 +24,6 @@ const AdminDashboard = () => {
     l.serviceInterest.toLowerCase().includes(searchLower)
   );
 
-  // --- DYNAMIC CALCULATIONS (Ab filtered data se chalenge) ---
   const totalSubServices = filteredServices.length;
   const activeMainServicesCount = new Set(filteredServices.map(s => s.parentService)).size; 
   
@@ -39,12 +36,8 @@ const AdminDashboard = () => {
   const recentActivities = [...filteredLeads].reverse().slice(0, 3);
   const recentClients = [...filteredLeads].reverse().slice(0, 5);
 
-  // ==========================================
-  // 🚀 DYNAMIC CHART LOGIC (Month by Month)
-  // ==========================================
   const monthlyLeads = new Array(12).fill(0); 
   
-  // Chart bhi search ke hisaab se update hoga
   filteredLeads.forEach(lead => {
     const date = new Date(lead.date);
     if (!isNaN(date.getTime())) {
@@ -61,7 +54,6 @@ const AdminDashboard = () => {
     <AdminLayout>
       <main className="pt-12 pb-12 px-8 max-w-7xl mx-auto">
         
-        {/* Dashboard Welcome Header */}
         <div className="mb-10">
           <h2 className="text-3xl font-extrabold font-headline text-on-surface tracking-tight mb-2">Welcome Back, Architect</h2>
           <p className="text-slate-500 font-body">
@@ -69,7 +61,6 @@ const AdminDashboard = () => {
           </p>
         </div>
 
-        {/* DYNAMIC Bento Grid Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform duration-300">
             <div className="flex justify-between items-start mb-4">
@@ -116,12 +107,9 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Dashboard Body */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           <div className="lg:col-span-2 space-y-8">
-            
-            {/* 🚀 DYNAMIC PROJECT GROWTH CHART AREA */}
             <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100">
               <div className="flex justify-between items-center mb-10">
                 <div>
@@ -130,7 +118,6 @@ const AdminDashboard = () => {
                 </div>
               </div>
               
-              {/* Dynamic Bars Container */}
               <div className="h-48 flex items-end justify-between gap-1 sm:gap-3 group mt-8">
                 {monthlyLeads.map((count, index) => {
                   const heightPercent = Math.max((count / maxLeads) * 100, 2); 
@@ -152,7 +139,6 @@ const AdminDashboard = () => {
                 })}
               </div>
 
-              {/* Dynamic Month Labels */}
               <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
                 {monthLabels.map((m, i) => (
                   <span key={m} className={i === currentMonth ? "text-blue-600" : ""}>{m}</span>
@@ -160,7 +146,6 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* DYNAMIC Featured Projects Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {latestProjects.length === 0 ? (
                 <div className="col-span-full h-64 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 bg-white">
@@ -186,10 +171,7 @@ const AdminDashboard = () => {
 
           </div>
 
-          {/* Right Column */}
           <div className="space-y-8">
-            
-            {/* DYNAMIC Recent Activity Section */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
               <div className="flex justify-between items-center mb-6">
                 <h4 className="text-sm font-extrabold uppercase tracking-widest text-slate-400">Recent Lead Activity</h4>
@@ -215,7 +197,6 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* DYNAMIC High-Value Leads Sidebar Card */}
             <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-xl text-white shadow-md relative overflow-hidden">
               <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-white/10 text-9xl rotate-12">trending_up</span>
               <h4 className="text-lg font-bold mb-2">High-Value Leads</h4>
@@ -225,7 +206,6 @@ const AdminDashboard = () => {
               </Link>
             </div>
 
-            {/* DYNAMIC Recent Clients */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
               <h4 className="text-sm font-extrabold uppercase tracking-widest text-slate-400 mb-6">Recent Clients</h4>
               <div className="flex -space-x-2">
@@ -251,7 +231,6 @@ const AdminDashboard = () => {
 
       </main>
 
-      {/* Floating Action Button */}
       <Link to="/admin-projects">
         <button className="fixed bottom-8 right-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform group z-50">
           <span className="material-symbols-outlined text-2xl">add</span>
