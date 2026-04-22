@@ -41,7 +41,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="px-6 mb-10 flex justify-between items-center">
           <div>
             <h1 className="text-xl font-bold tracking-tighter text-blue-800 font-headline">Shonali Network</h1>
-            <p className="text-xs text-slate-500 font-medium tracking-tight">The Digital Architect</p>
+            <p className="text-xs text-slate-500 font-medium tracking-tight">The Digital Architect <span>sahil</span></p>
           </div>
           <button className="md:hidden text-slate-400 hover:text-red-500 transition-colors" onClick={closeSidebar}>
             <span className="material-symbols-outlined">close</span>
