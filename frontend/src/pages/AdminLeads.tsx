@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData } from "../context/DataContext"; 
+import { useLeadData } from "../context/LeadContext"; 
 
 const AdminLeads = () => {
-  const { leads, updateLeadStatus, deleteLead, searchQuery } = useData();
+  // ✅ FIX: Ab update aur delete asali context se aayenge
+  const { leads = [], loading, updateLeadStatus, deleteLead } = useLeadData();
   
-  const [selectedLeadId, setSelectedLeadId] = useState<string | number | null>(null);
+  const [searchQuery, setSearchQuery] = useState(""); 
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [filterService, setFilterService] = useState<string>("All");
 
   const selectedLead = leads.find(l => l.id === selectedLeadId) || null;
@@ -14,8 +16,7 @@ const AdminLeads = () => {
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
       lead.name.toLowerCase().includes(searchLower) || 
-      lead.email.toLowerCase().includes(searchLower) ||
-      lead.id.toString().includes(searchLower);
+      lead.email.toLowerCase().includes(searchLower);
     
     const matchesService = filterService === "All" || lead.serviceInterest === filterService;
     
@@ -26,234 +27,193 @@ const AdminLeads = () => {
   const contactedLeadsCount = leads.filter(l => l.status === "Contacted").length;
   const qualifiedLeadsCount = leads.filter(l => l.status === "Qualified").length;
   
+  // Revenue Logic
   const wonLeads = leads.filter(l => l.status === "Won");
-  
   const totalRevenue = wonLeads.reduce((total, lead) => {
+    if(!lead.budget) return total;
     const match = lead.budget.match(/\d+/); 
     let amount = match ? parseInt(match[0]) : 0;
-    
-    if (lead.budget.toLowerCase().includes('k')) {
-        amount = amount * 1000;
-    } else if (lead.budget.toLowerCase().includes('lakh') || lead.budget.toLowerCase().includes('l')) {
-        amount = amount * 100000;
-    }
+    if (lead.budget.toLowerCase().includes('k')) amount *= 1000;
+    else if (lead.budget.toLowerCase().includes('l')) amount *= 100000;
     return total + amount;
   }, 0);
   
-  let formattedRevenue = `₹${totalRevenue}`;
-  if (totalRevenue >= 100000) {
-    formattedRevenue = `₹${(totalRevenue / 100000).toFixed(1)}L`;
-  } else if (totalRevenue >= 1000) {
-    formattedRevenue = `₹${(totalRevenue / 1000).toFixed(1)}k`;
-  } else if (totalRevenue === 0) {
-    formattedRevenue = "₹0";
-  }
-
+  const formattedRevenue = totalRevenue >= 100000 ? `₹${(totalRevenue / 100000).toFixed(1)}L` : `₹${(totalRevenue / 1000).toFixed(1)}k`;
   const uniqueServices = ["All", ...Array.from(new Set(leads.map(l => l.serviceInterest)))];
 
   const handleExport = () => {
-    if (leads.length === 0) {
-      alert("No leads available to export!");
-      return;
-    }
-    const headers = ["ID", "Client Name", "Email", "Service Interest", "Budget", "Status", "Message", "Date Received"];
-    const csvRows = leads.map(lead => {
-      const escapedMessage = lead.message.replace(/"/g, '""'); 
-      return `${lead.id},"${lead.name}","${lead.email}","${lead.serviceInterest}","${lead.budget}","${lead.status}","${escapedMessage}","${lead.date}"`;
-    });
-    const csvContent = [headers.join(","), ...csvRows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+    if (leads.length === 0) return alert("No leads to export!");
+    const headers = ["ID", "Name", "Email", "Requirement", "Budget", "Status"];
+    const csvContent = [headers.join(","), ...leads.map(l => `${l.id},"${l.name}","${l.email}","${l.serviceInterest}","${l.budget}","${l.status}"`)].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Shonali_Network_Leads.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = "Shonali_Leads.csv";
     link.click();
-    document.body.removeChild(link);
   };
+
+  if (loading) return <AdminLayout><div className="flex h-screen items-center justify-center font-bold text-blue-600">Loading Ecosystem...</div></AdminLayout>;
 
   return (
     <AdminLayout>
-      <main className="pt-10 pb-12 px-4 md:px-8 min-h-screen">
+      <main className="pt-6 pb-12 px-4 md:px-8 min-h-screen bg-slate-50/50">
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+        {/* Sleek Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-slate-200 pb-4">
           <div>
-            <span className="text-blue-600 font-headline text-xs tracking-widest uppercase mb-2 block font-bold">Workspace // Lead Matrix</span>
-            <h1 className="text-3xl md:text-4xl font-headline font-extrabold tracking-tight text-on-surface">Digital Leads Ecosystem</h1>
+            <span className="text-blue-600 text-[10px] tracking-widest uppercase mb-1 block font-black">Workspace // Lead Matrix</span>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900">Digital Leads</h1>
           </div>
-          <div className="w-full md:w-auto flex gap-4">
-            <button 
-              onClick={handleExport}
-              className="w-full md:w-auto justify-center bg-blue-600 text-white px-8 py-2.5 rounded-xl font-headline font-bold flex items-center gap-2 hover:shadow-lg hover:shadow-blue-600/25 transition-all active:scale-95"
-            >
-              <span className="material-symbols-outlined text-[20px]">ios_share</span>
-              <span>Export Data</span>
-            </button>
+          <button onClick={handleExport} className="w-full md:w-auto bg-slate-900 hover:bg-black text-white px-6 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all">
+            <span className="material-symbols-outlined text-[16px]">download</span>
+            Export CSV
+          </button>
+        </div>
+
+        {/* Compact Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatBox label="New Acquisition" value={newLeadsCount} color="#f97316" />
+          <StatBox label="In Dialogue" value={contactedLeadsCount} color="#3b82f6" />
+          <StatBox label="Qualified" value={qualifiedLeadsCount} color="#22c55e" />
+          <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col justify-center">
+            <p className="text-blue-600 text-[10px] font-extrabold uppercase tracking-wider mb-1">Conversion Total</p>
+            <h3 className="text-2xl font-black text-blue-600">{formattedRevenue}</h3>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 mb-12">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <p className="text-slate-500 text-sm font-medium mb-1">New Acquisition</p>
-            <h3 className="text-3xl font-headline font-extrabold">{newLeadsCount}</h3>
-            <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
-              <div className="h-full bg-blue-600" style={{width: leads.length ? `${(newLeadsCount/leads.length)*100}%` : '0%'}}></div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <p className="text-slate-500 text-sm font-medium mb-1">In Dialogue</p>
-            <h3 className="text-3xl font-headline font-extrabold">{contactedLeadsCount}</h3>
-            <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
-              <div className="h-full bg-blue-600" style={{width: leads.length ? `${(contactedLeadsCount/leads.length)*100}%` : '0%'}}></div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-            <p className="text-slate-500 text-sm font-medium mb-1">Qualified Architectures</p>
-            <h3 className="text-3xl font-headline font-extrabold">{qualifiedLeadsCount}</h3>
-            <div className="h-1 bg-slate-100 rounded-full mt-4 overflow-hidden">
-              <div className="h-full bg-blue-600" style={{width: leads.length ? `${(qualifiedLeadsCount/leads.length)*100}%` : '0%'}}></div>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-xl border-2 border-blue-600/10 shadow-sm">
-            <p className="text-slate-500 text-sm font-medium mb-1 text-blue-600">Conversion Total</p>
-            <h3 className="text-3xl font-headline font-extrabold text-blue-600">{formattedRevenue}</h3>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8 space-y-4 min-w-0">
+        <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12 lg:col-span-8 space-y-6">
             
-            {/* 🔥 FIX: table-fixed aur column widths daal di */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <table className="w-full text-left border-collapse table-fixed">
+            {/* Search Bar */}
+            <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex items-center gap-2">
+               <span className="material-symbols-outlined text-slate-400 pl-2">search</span>
+               <input 
+                 type="text" 
+                 placeholder="Search leads by name or email..." 
+                 className="w-full bg-transparent outline-none text-sm p-2"
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+               />
+            </div>
+
+            {/* Responsive Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+              <table className="w-full text-left min-w-[600px]">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200/50">
-                    <th className="w-[12%] px-3 py-4 text-[9px] md:text-[10px] font-headline font-bold text-slate-400 tracking-widest uppercase">ID</th>
-                    <th className="w-[35%] px-3 py-4 text-[10px] md:text-xs font-headline font-bold text-slate-600 uppercase">Client Info</th>
-                    <th className="w-[23%] px-3 py-4 text-[10px] md:text-xs font-headline font-bold text-slate-600 uppercase">Requirement</th>
-                    <th className="w-[15%] px-3 py-4 text-[10px] md:text-xs font-headline font-bold text-slate-600 uppercase text-right">Budget</th>
-                    <th className="w-[15%] px-3 py-4 text-[10px] md:text-xs font-headline font-bold text-slate-600 uppercase text-center">Status</th>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Client Info</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Requirement</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Budget</th>
+                    <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredLeads.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-medium">
-                        {searchQuery ? `No leads matching "${searchQuery}"` : "No leads found."}
+                  {filteredLeads.map((lead) => (
+                    <tr 
+                      key={lead.id} 
+                      onClick={() => setSelectedLeadId(lead.id)}
+                      className={`cursor-pointer transition-colors ${selectedLead?.id === lead.id ? 'bg-blue-50/50' : 'hover:bg-slate-50'}`}
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
+                            {lead.name.substring(0,2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-slate-900 truncate">{lead.name}</p>
+                            <p className="text-[10px] text-slate-400 truncate">{lead.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 text-[9px] font-bold rounded flex inline-block w-fit">{lead.serviceInterest}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-extrabold text-xs text-slate-700">{lead.budget}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-1 text-[9px] font-bold rounded-full uppercase ${
+                          lead.status === 'New' ? 'bg-orange-100 text-orange-600' : 
+                          lead.status === 'Won' ? 'bg-green-100 text-green-600' : 
+                          'bg-blue-100 text-blue-600'
+                        }`}>
+                          {lead.status}
+                        </span>
                       </td>
                     </tr>
-                  ) : (
-                    filteredLeads.map((lead) => (
-                      <tr 
-                        key={lead.id} 
-                        onClick={() => setSelectedLeadId(lead.id)}
-                        className={`transition-colors cursor-pointer ${selectedLead?.id === lead.id ? 'bg-blue-50/50 border-l-4 border-blue-600' : 'hover:bg-slate-50/80 border-l-4 border-transparent'}`}
-                      >
-                        <td className="px-3 py-4 font-mono text-[9px] md:text-[10px] text-slate-400 truncate">{lead.id}</td>
-                        <td className="px-3 py-4 truncate">
-                          <div className="flex items-center gap-2 md:gap-3">
-                            <div className="w-7 h-7 md:w-9 md:h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-[10px] md:text-xs shrink-0">
-                              {lead.name.substring(0, 2).toUpperCase()}
-                            </div>
-                            {/* 🔥 FIX: Text ko truncate karne ke liye min-w-0 lagaya */}
-                            <div className="min-w-0 flex-1">
-                              <p className="font-headline font-semibold text-[11px] md:text-sm text-slate-900 truncate">{lead.name}</p>
-                              <p className="text-[9px] md:text-[11px] text-slate-400 truncate">{lead.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-4 truncate">
-                          <span className="px-2 md:px-3 py-1 bg-slate-100 text-slate-600 text-[9px] md:text-[11px] font-bold rounded-full truncate inline-block max-w-full">{lead.serviceInterest}</span>
-                        </td>
-                        <td className="px-3 py-4 text-right font-headline font-bold text-[11px] md:text-sm text-slate-900 truncate">{lead.budget}</td>
-                        <td className="px-3 py-4 text-center truncate">
-                          <span className={`px-2 md:px-3 py-1 text-[9px] md:text-[11px] font-bold rounded-full truncate inline-block max-w-full
-                            ${lead.status === 'New' ? 'bg-orange-100 text-orange-700' : 
-                              lead.status === 'Contacted' ? 'bg-blue-100 text-blue-700' : 
-                              lead.status === 'Qualified' ? 'bg-green-100 text-green-700' : 
-                              'bg-indigo-100 text-indigo-700'}`}>
-                            {lead.status === 'Won' ? 'Won Project' : lead.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                  ))}
+                  {filteredLeads.length === 0 && (
+                     <tr><td colSpan={4} className="p-8 text-center text-slate-400 text-sm">No leads found.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
+          </div>
 
+          <div className="col-span-12 lg:col-span-4 space-y-6">
+            
+            {/* Filter Section */}
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+              <h4 className="font-bold text-xs uppercase text-slate-500 tracking-wider mb-3">Filter by Service</h4>
+              <div className="flex flex-wrap gap-2">
+                {uniqueServices.map(service => (
+                  <button 
+                    key={service} 
+                    onClick={() => setFilterService(service)} 
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${filterService === service ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
+                  >
+                    {service}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lead Details Card */}
             {selectedLead && (
-              <div className="bg-white p-4 md:p-8 rounded-2xl shadow-sm border border-slate-100 mt-8 animate-in fade-in slide-in-from-bottom-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 rounded-xl shrink-0"><span className="material-symbols-outlined text-blue-600 text-3xl">person</span></div>
-                    <div>
-                      <h4 className="font-headline font-bold text-xl text-slate-900">{selectedLead.name}</h4>
-                      <p className="text-sm text-slate-500 font-medium">{selectedLead.serviceInterest} • {selectedLead.budget} Budget</p>
-                    </div>
+              <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 sticky top-24">
+                <div className="flex justify-between items-start mb-5 border-b border-slate-100 pb-4">
+                  <div>
+                    <h4 className="font-black text-lg text-slate-900">{selectedLead.name}</h4>
+                    <p className="text-xs text-slate-500 font-medium">{selectedLead.email}</p>
                   </div>
-                  
-                  <div className="flex gap-2 w-full sm:w-auto justify-end">
-                    <a 
-                      href={`https://mail.google.com/mail/?view=cm&fs=1&to=${selectedLead.email}`} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="bg-blue-600 text-white w-10 h-10 flex items-center justify-center rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                      title="Send Email via Gmail"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">mail</span>
-                    </a>
-                    
-                    <button 
-                      onClick={() => { deleteLead(selectedLead.id); setSelectedLeadId(null); }} 
-                      className="bg-white border border-red-200 text-red-500 w-10 h-10 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors"
-                      title="Delete Lead"
-                    >
-                      <span className="material-symbols-outlined text-[20px]">delete</span>
-                    </button>
-                  </div>
+                  <button onClick={() => deleteLead(selectedLead.id)} className="w-8 h-8 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg flex items-center justify-center transition-colors">
+                     <span className="material-symbols-outlined text-[16px]">delete</span>
+                  </button>
+                </div>
+                
+                <div className="mb-5">
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Message / Requirement</p>
+                   <div className="bg-slate-50 p-3 rounded-lg text-xs leading-relaxed text-slate-700 border border-slate-100">
+                     "{selectedLead.message}"
+                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t border-slate-100 pt-6">
-                  <div className="col-span-1 md:col-span-2">
-                    <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Initial Message</h5>
-                    <div className="bg-slate-50 p-4 md:p-5 rounded-xl text-sm text-slate-700 border border-slate-100">"{selectedLead.message}"</div>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <h5 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Update Status</h5>
-                    <button onClick={() => updateLeadStatus(selectedLead.id, "Contacted")} className={`p-3 rounded-xl border text-sm font-bold transition-all ${selectedLead.status === 'Contacted' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 hover:bg-slate-100'}`}>Mark Contacted</button>
-                    <button onClick={() => updateLeadStatus(selectedLead.id, "Qualified")} className={`p-3 rounded-xl border text-sm font-bold transition-all ${selectedLead.status === 'Qualified' ? 'bg-green-600 text-white border-green-600' : 'bg-slate-50 hover:bg-slate-100'}`}>Mark Qualified</button>
-                    <button onClick={() => updateLeadStatus(selectedLead.id, "Won")} className={`p-3 rounded-xl border text-sm font-bold transition-all ${selectedLead.status === 'Won' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 hover:bg-slate-100'}`}>Project Won!</button>
-                  </div>
+                <div>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Update Status</p>
+                   <div className="grid grid-cols-2 gap-2">
+                     <button onClick={() => updateLeadStatus(selectedLead.id, "Contacted")} className="py-2 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-600 border border-blue-100 text-[10px] font-bold rounded-lg transition-all">Mark Contacted</button>
+                     <button onClick={() => updateLeadStatus(selectedLead.id, "Qualified")} className="py-2 bg-purple-50 hover:bg-purple-600 hover:text-white text-purple-600 border border-purple-100 text-[10px] font-bold rounded-lg transition-all">Qualified</button>
+                     <button onClick={() => updateLeadStatus(selectedLead.id, "Won")} className="py-2 col-span-2 bg-green-500 hover:bg-green-600 text-white shadow-sm text-[11px] font-bold rounded-lg transition-all flex items-center justify-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">emoji_events</span> Project Won!
+                     </button>
+                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="col-span-12 lg:col-span-4 space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-              <h4 className="font-headline font-extrabold text-lg mb-4 text-slate-900">Filter Leads</h4>
-              <div className="flex flex-col gap-2">
-                {uniqueServices.map(service => (
-                  <button 
-                    key={service}
-                    onClick={() => setFilterService(service)}
-                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold border transition-all ${filterService === service ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-white hover:bg-slate-50'}`}
-                  >
-                    {service}
-                    <span className="float-right text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">
-                      {service === "All" ? leads.length : leads.filter(l => l.serviceInterest === service).length}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
       </main>
     </AdminLayout>
   );
 };
+
+const StatBox = ({ label, value, color }: any) => (
+  <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">{label}</p>
+    <h3 className="text-2xl font-black text-slate-800">{value}</h3>
+    <div className="h-1 bg-slate-100 rounded-full mt-3 overflow-hidden">
+      <div className="h-full" style={{ width: '60%', backgroundColor: color }}></div>
+    </div>
+  </div>
+);
 
 export default AdminLeads;

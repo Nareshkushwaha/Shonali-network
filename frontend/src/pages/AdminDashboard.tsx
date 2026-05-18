@@ -1,245 +1,222 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData } from "../context/DataContext";
+import { useServiceData } from "../context/ServiceContext";
+import { useProjectData } from "../context/ProjectContext";
+import { useLeadData } from "../context/LeadContext";
+import axios from "axios";
+import { API_URL } from "../../config/api";
 
 const AdminDashboard = () => {
-  const { services, projects, leads, searchQuery } = useData();
-
-  const searchLower = searchQuery.toLowerCase();
-
-  const filteredServices = services.filter(s => 
-    s.title.toLowerCase().includes(searchLower) || 
-    s.parentService.toLowerCase().includes(searchLower)
-  );
-
-  const filteredProjects = projects.filter(p => 
-    p.title.toLowerCase().includes(searchLower) || 
-    p.category.toLowerCase().includes(searchLower)
-  );
-
-  const filteredLeads = leads.filter(l => 
-    l.name.toLowerCase().includes(searchLower) || 
-    l.email.toLowerCase().includes(searchLower) ||
-    l.serviceInterest.toLowerCase().includes(searchLower)
-  );
-
-  const totalSubServices = filteredServices.length;
-  const activeMainServicesCount = new Set(filteredServices.map(s => s.parentService)).size; 
+  const { services = [] } = useServiceData();
+  const { projects = [] } = useProjectData();
+  const { leads = [], fetchLeads } = useLeadData();
   
-  const totalProjects = filteredProjects.length;
-  const totalLeads = filteredLeads.length;
-  const newLeadsCount = filteredLeads.filter(l => l.status === "New").length;
-  const highValueLeadsCount = filteredLeads.filter(l => l.budget.includes("10k") || l.budget.includes("25k")).length;
+  const [currentDate, setCurrentDate] = useState("");
+  const [brochureCount, setBrochureCount] = useState(0);
 
-  const latestProjects = [...filteredProjects].reverse().slice(0, 2);
-  const recentActivities = [...filteredLeads].reverse().slice(0, 3);
-  const recentClients = [...filteredLeads].reverse().slice(0, 5);
+  useEffect(() => {
+    // Current Date Setup
+    const dateOptions: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    setCurrentDate(new Date().toLocaleDateString('en-US', dateOptions));
 
+    // Fresh Leads fetch karna
+    if (fetchLeads) fetchLeads();
+
+    // NAYA: Brochure Downloads count fetch karna
+    const fetchBrochures = async () => {
+      try {
+        const token = localStorage.getItem("shonali_token");
+        const res = await axios.get(`${API_URL}/brochures/list`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setBrochureCount(res.data.length);
+      } catch (err) { console.error("Brochure fetch error"); }
+    };
+    fetchBrochures();
+
+  }, []);
+
+  // --- STATS CALCULATION ---
+  const activeMainServicesCount = new Set(services.map((s: any) => s.parentService)).size; 
+  const totalSubServices = services.length; // NAYA: Sub-services wapas aa gaye
+  const totalProjects = projects.length;
+  
+  const currentMonthIndex = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  // --- DYNAMIC CHART LOGIC (Leads) ---
   const monthlyLeads = new Array(12).fill(0); 
   
-  filteredLeads.forEach(lead => {
-    const date = new Date(lead.date);
-    if (!isNaN(date.getTime())) {
-      const month = date.getMonth(); 
-      monthlyLeads[month]++; 
+  leads.forEach((lead: any) => {
+    let leadDate = new Date(); 
+    if (lead.date) {
+        const parsedDate = new Date(lead.date);
+        if (!isNaN(parsedDate.getTime())) leadDate = parsedDate;
+    }
+    if (leadDate.getFullYear() === currentYear) {
+      monthlyLeads[leadDate.getMonth()]++; 
     }
   });
 
   const maxLeads = Math.max(...monthlyLeads, 1); 
-  const currentMonth = new Date().getMonth(); 
   const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  // --- RECENT PROJECTS LOGIC (Naya) ---
+  const recentProjectsList = [...projects].reverse().slice(0, 5);
 
   return (
     <AdminLayout>
-      <main className="pt-12 pb-12 px-8 max-w-7xl mx-auto">
+      <main className="pt-8 pb-12 px-6 lg:px-8 max-w-7xl mx-auto min-h-screen bg-slate-50/50">
         
-        <div className="mb-10">
-          <h2 className="text-3xl font-extrabold font-headline text-on-surface tracking-tight mb-2">Welcome Back, Architect</h2>
-          <p className="text-slate-500 font-body">
-            {searchQuery ? `Showing dashboard results for "${searchQuery}"` : "Here is the real-time overview of Shonali Network today."}
-          </p>
+        {/* Sleek Header */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+              </span>
+              <span className="text-[10px] font-black tracking-widest text-green-600 uppercase">System Online</span>
+            </div>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Overview Dashboard</h2>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Current Session</p>
+            <p className="text-sm font-semibold text-slate-700">{currentDate}</p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
-                <span className="material-symbols-outlined text-2xl">account_tree</span>
-              </div>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">Active</span>
-            </div>
-            <p className="text-slate-500 text-sm font-label mb-1">Active Categories</p>
-            <h3 className="text-2xl font-extrabold font-headline">{activeMainServicesCount}</h3>
-          </div>
-          
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
-                <span className="material-symbols-outlined text-2xl">layers</span>
-              </div>
-            </div>
-            <p className="text-slate-500 text-sm font-label mb-1">Total Sub-services</p>
-            <h3 className="text-2xl font-extrabold font-headline">{totalSubServices}</h3>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-teal-50 rounded-xl text-teal-600">
-                <span className="material-symbols-outlined text-2xl">architecture</span>
-              </div>
-            </div>
-            <p className="text-slate-500 text-sm font-label mb-1">Total Projects</p>
-            <h3 className="text-2xl font-extrabold font-headline">{totalProjects}</h3>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:scale-[1.02] transition-transform duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-200">
-                <span className="material-symbols-outlined text-2xl">leaderboard</span>
-              </div>
-              {newLeadsCount > 0 && (
-                <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">{newLeadsCount} New</span>
-              )}
-            </div>
-            <p className="text-slate-500 text-sm font-label mb-1">Total Leads</p>
-            <h3 className="text-2xl font-extrabold font-headline">{totalLeads}</h3>
-          </div>
+        {/* 🔥 DIVERSE STAT CARDS GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <StatCard 
+            icon="category" label="Active Categories" value={activeMainServicesCount} 
+            iconBg="bg-blue-50" iconColor="text-blue-600" 
+          />
+          <StatCard 
+            icon="layers" label="Total Sub-services" value={totalSubServices} 
+            iconBg="bg-indigo-50" iconColor="text-indigo-600" 
+          />
+          <StatCard 
+            icon="architecture" label="Total Projects" value={totalProjects} 
+            iconBg="bg-emerald-50" iconColor="text-emerald-600" 
+          />
+          <StatCard 
+            icon="download" label="Brochures Downloaded" value={brochureCount} 
+            iconBg="bg-orange-50" iconColor="text-orange-600" 
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-100">
-              <div className="flex justify-between items-center mb-10">
+          {/* DYNAMIC CHART SECTION */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-200">
+              <div className="flex justify-between items-end mb-8">
                 <div>
-                  <h4 className="text-lg font-bold font-headline text-slate-900">Lead Acquisition & Growth</h4>
-                  <p className="text-xs text-slate-400">Real-time monthly overview of project inquiries</p>
+                  <h4 className="text-lg font-extrabold text-slate-900">Lead Acquisition Trend</h4>
+                  <p className="text-xs font-semibold text-slate-500 mt-1">Monthly lead generation for {currentYear}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-3xl font-black text-blue-600">{monthlyLeads[currentMonthIndex]}</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">This Month</p>
                 </div>
               </div>
-              
-              <div className="h-48 flex items-end justify-between gap-1 sm:gap-3 group mt-8">
-                {monthlyLeads.map((count, index) => {
-                  const heightPercent = Math.max((count / maxLeads) * 100, 2); 
-                  const isCurrentMonth = index === currentMonth;
 
+              <div className="h-56 flex items-end justify-between gap-1.5 md:gap-3 mt-4 pt-6 border-b border-slate-100 pb-2 relative">
+                {monthlyLeads.map((count, index) => {
+                  const isCurrentMonth = index === currentMonthIndex;
+                  const heightPercent = maxLeads > 0 ? (count / maxLeads) * 100 : 0;
+                  
                   return (
-                    <div 
-                      key={index} 
-                      className={`w-full rounded-t-lg relative group/bar transition-all duration-700 ease-out 
-                        ${isCurrentMonth ? 'bg-gradient-to-t from-blue-600 to-blue-400 shadow-md' : count > 0 ? 'bg-blue-200 hover:bg-blue-300' : 'bg-slate-50 hover:bg-slate-200'}
-                      `} 
-                      style={{ height: `${heightPercent}%` }}
-                    >
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover/bar:opacity-100 pointer-events-none transition-opacity z-10 whitespace-nowrap">
-                        {count} Leads
-                      </div>
+                    <div key={index} className="w-full flex flex-col items-center group relative">
+                      <span className={`absolute -top-6 text-[10px] font-bold ${isCurrentMonth ? 'text-blue-600 opacity-100' : 'text-slate-400 opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                        {count > 0 ? count : ''}
+                      </span>
+                      
+                      <div 
+                        className={`w-full rounded-t-md transition-all duration-700 ease-out ${
+                          isCurrentMonth 
+                            ? 'bg-gradient-to-t from-blue-500 to-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]' 
+                            : count > 0 ? 'bg-slate-200 group-hover:bg-slate-300' : 'bg-slate-50'
+                        }`} 
+                        style={{ height: `${heightPercent}%`, minHeight: count > 0 ? '8px' : '4px' }}
+                      ></div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">
+              <div className="flex justify-between mt-3 text-[10px] font-bold tracking-wider uppercase text-slate-400">
                 {monthLabels.map((m, i) => (
-                  <span key={m} className={i === currentMonth ? "text-blue-600" : ""}>{m}</span>
+                  <span key={m} className={`w-full text-center ${i === currentMonthIndex ? "text-blue-600 font-black" : ""}`}>
+                    {m}
+                  </span>
                 ))}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {latestProjects.length === 0 ? (
-                <div className="col-span-full h-64 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400 bg-white">
-                  <span className="material-symbols-outlined text-4xl mb-2">architecture</span>
-                  <p className="text-sm font-medium">No projects found.</p>
-                </div>
-              ) : (
-                latestProjects.map((project, index) => (
-                  <div key={project.id} className="group relative overflow-hidden rounded-xl h-64 shadow-sm">
-                    <img alt={project.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src={project.image} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
-                    <div className="absolute bottom-0 p-6">
-                      <span className={`${index === 0 ? 'bg-blue-500' : 'bg-teal-500'} text-white text-[10px] font-bold px-2 py-0.5 rounded mb-2 inline-block uppercase tracking-wider`}>
-                        {index === 0 ? 'Latest' : 'Featured'}
-                      </span>
-                      <h5 className="text-white font-bold text-lg leading-tight line-clamp-1">{project.title}</h5>
-                      <p className="text-slate-300 text-xs mt-1">{project.category}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
           </div>
 
-          <div className="space-y-8">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-              <div className="flex justify-between items-center mb-6">
-                <h4 className="text-sm font-extrabold uppercase tracking-widest text-slate-400">Recent Lead Activity</h4>
-                <Link to="/admin-leads" className="text-blue-600 text-xs font-bold hover:underline">View All</Link>
+          {/* 🔥 RECENT PROJECTS SECTION */}
+          <div className="lg:col-span-1">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 h-full">
+              <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                <h4 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">Recent Projects</h4>
+                <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md">Portfolio</span>
               </div>
-              <div className="space-y-6">
-                {recentActivities.length === 0 ? (
-                  <p className="text-sm text-slate-400 italic">No recent activity.</p>
-                ) : (
-                  recentActivities.map((lead) => (
-                    <div key={lead.id} className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-sm">mail</span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">New inquiry from {lead.name.split(' ')[0]}</p>
-                        <p className="text-xs text-slate-500 line-clamp-1">Interested in "{lead.serviceInterest}"</p>
-                        <p className="text-[10px] text-blue-600 font-bold mt-1">{lead.date}</p>
-                      </div>
+              
+              <div className="space-y-5">
+                {recentProjectsList.length > 0 ? recentProjectsList.map((project: any) => (
+                  <div key={project.id} className="flex gap-4 items-center group">
+                    
+                    {/* Project Thumbnail Image */}
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 shadow-sm group-hover:shadow-md transition-all">
+                       {project.image ? (
+                          <img src={`${API_URL.replace('/api', '')}${project.image}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                       ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-600 font-black text-sm uppercase">
+                             {project.title.substring(0, 2)}
+                          </div>
+                       )}
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-xl text-white shadow-md relative overflow-hidden">
-              <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-white/10 text-9xl rotate-12">trending_up</span>
-              <h4 className="text-lg font-bold mb-2">High-Value Leads</h4>
-              <p className="text-blue-100 text-sm mb-6">There are <strong>{highValueLeadsCount}</strong> high-value inquiries awaiting your review.</p>
-              <Link to="/admin-leads">
-                <button className="w-full bg-white text-blue-700 py-3 rounded-lg font-bold text-sm hover:bg-blue-50 transition-colors shadow-lg">Review Leads</button>
-              </Link>
-            </div>
-
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-              <h4 className="text-sm font-extrabold uppercase tracking-widest text-slate-400 mb-6">Recent Clients</h4>
-              <div className="flex -space-x-2">
-                {recentClients.length === 0 ? (
-                  <p className="text-xs text-slate-400">No clients found.</p>
-                ) : (
-                  recentClients.map((client, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold shadow-sm" title={client.name}>
-                      {client.name.substring(0, 2).toUpperCase()}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-slate-900 truncate">{project.title}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate mt-0.5">{project.category}</p>
                     </div>
-                  ))
-                )}
-                {filteredLeads.length > 5 && (
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold shadow-sm">
-                    +{filteredLeads.length - 5}
+                  </div>
+                )) : (
+                  <div className="text-center py-10">
+                    <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">architecture</span>
+                    <p className="text-sm font-bold text-slate-400">No recent projects found.</p>
                   </div>
                 )}
               </div>
             </div>
-
           </div>
+
         </div>
-
       </main>
-
-      <Link to="/admin-projects">
-        <button className="fixed bottom-8 right-8 bg-gradient-to-r from-blue-600 to-blue-500 text-white w-14 h-14 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform group z-50">
-          <span className="material-symbols-outlined text-2xl">add</span>
-          <div className="absolute right-16 bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Create New Project</div>
-        </button>
-      </Link>
-
     </AdminLayout>
   );
 };
+
+const StatCard = ({ icon, label, value, iconBg, iconColor, badge }: any) => (
+  <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition-all">
+    <div className="flex justify-between items-start mb-4">
+      <div className={`p-3 rounded-xl ${iconBg} ${iconColor} transition-transform group-hover:scale-110`}>
+        <span className="material-symbols-outlined text-[20px]">{icon}</span>
+      </div>
+      {badge && (
+        <span className="text-[9px] font-black tracking-widest bg-orange-500 text-white px-2 py-1 rounded-md shadow-sm animate-pulse">
+          {badge}
+        </span>
+      )}
+    </div>
+    <div>
+      <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">{label}</p>
+      <h3 className="text-3xl font-black text-slate-900 tracking-tight">{value}</h3>
+    </div>
+  </div>
+);
 
 export default AdminDashboard;

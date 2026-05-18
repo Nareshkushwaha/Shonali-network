@@ -1,140 +1,168 @@
 import React, { useState } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData } from "../context/DataContext";
+import { useProjectData } from "../context/ProjectContext";
+import axios from "axios";
+import { API_URL } from "../../config/api";
 
 const AdminProjects = () => {
-  const { projects, addProject, deleteProject, searchQuery } = useData();
-  const [showForm, setShowForm] = useState(false);
+  const { projects = [], fetchProjects } = useProjectData();
   
+  const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [image, setImage] = useState("");
+  const [image, setImage] = useState<File | null>(null); 
   const [description, setDescription] = useState("");
+  const [liveUrl, setLiveUrl] = useState(""); // 🔥 Naya State
+  const [loading, setLoading] = useState(false);
 
   const projectCategories = ["Web Design", "Mobile Apps", "Marketing", "Branding", "Software"];
 
-  const filteredProjects = projects.filter((project) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      project.title.toLowerCase().includes(searchLower) ||
-      project.category.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title || !category || !image || !description) {
-      return alert("Please fill all fields!");
+      return alert("Please fill all required fields and select an image!");
     }
 
-    addProject({
-      id: Date.now().toString(),
-      title,
-      category,
-      image,
-      description
-    });
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("shonali_token");
+      
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("category", category);
+      formData.append("description", description);
+      formData.append("liveUrl", liveUrl); // 🔥 Form mein add kiya
+      formData.append("image", image); 
 
-    setTitle("");
-    setCategory("");
-    setImage("");
-    setDescription("");
-    setShowForm(false);
+      const res = await axios.post(`${API_URL}/projects`, formData, {
+        headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data" 
+        }
+      });
+
+      if (res.data) {
+        alert("✅ Project saved successfully!");
+        fetchProjects(); 
+        setShowForm(false);
+        setTitle(""); setCategory(""); setImage(null); setDescription(""); setLiveUrl("");
+      }
+    } catch (error) {
+      alert("❌ Failed to save project.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this project?")) return;
+    try {
+      const token = localStorage.getItem("shonali_token");
+      await axios.delete(`${API_URL}/projects/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchProjects();
+    } catch (error) {
+      alert("Delete failed.");
+    }
   };
 
   return (
     <AdminLayout>
-      <main className="pt-8 px-6 pb-12 min-h-screen max-w-7xl mx-auto">
+      <main className="pt-8 px-4 md:px-8 pb-12 min-h-screen max-w-7xl mx-auto bg-slate-50/50">
         
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-200 pb-6">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-1">Project Portfolio</h2>
-            <p className="text-slate-500 text-sm font-medium">Curating digital excellence blueprints.</p>
+            <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">Project Portfolio</h2>
+            <p className="text-slate-500 text-xs font-medium mt-1">Manage and showcase your premium work.</p>
           </div>
           <button 
             onClick={() => setShowForm(!showForm)}
-            className="mt-4 md:mt-0 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 group"
+            className="bg-slate-900 hover:bg-slate-800 transition-all text-white px-5 py-2 rounded-lg font-semibold text-xs flex items-center shadow-md"
           >
-            <span className={`material-symbols-outlined mr-2 text-[20px] transition-transform ${showForm ? "rotate-45" : ""}`}>
-              {showForm ? "close" : "add"}
-            </span>
-            {showForm ? "Cancel" : "Add Project"}
+            <span className="material-symbols-outlined text-[18px] mr-2">{showForm ? "close" : "add"}</span>
+            {showForm ? "Cancel Entry" : "New Project"}
           </button>
         </div>
 
         {showForm && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 animate-in fade-in slide-in-from-top-2">
-            <h3 className="text-lg font-bold mb-5 text-slate-800">New Project Entry</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 mb-8 shadow-sm">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-5 flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-600 text-[18px]">edit_document</span>
+              Project Configuration
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Project Title</label>
-                <input value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/10 outline-none" placeholder="Project name..." />
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Project Title</label>
+                <input value={title} onChange={e => setTitle(e.target.value)} className="w-full p-2.5 bg-slate-50/50 border border-slate-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="e.g. E-Commerce App" />
               </div>
+
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Category</label>
-                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none">
-                  <option value="" disabled>Select...</option>
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Category</label>
+                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-2.5 bg-slate-50/50 border border-slate-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-blue-500/20">
+                  <option value="">Select Category</option>
                   {projectCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Image Link</label>
-                <input value={image} onChange={e => setImage(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none" placeholder="https://..." />
+
+              {/* 🔥 Naya Live Link Input */}
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Live Project Link (Optional)</label>
+                <input type="url" value={liveUrl} onChange={e => setLiveUrl(e.target.value)} className="w-full p-2.5 bg-slate-50/50 border border-slate-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-blue-500/20" placeholder="https://example.com" />
               </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Description</label>
-                <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-sm outline-none resize-none" rows={2} placeholder="Briefly describe..."></textarea>
+
+              <div className="md:col-span-2 space-y-1.5">
+                 <label className="text-[10px] font-bold text-slate-500 uppercase">Project Cover Image</label>
+                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-all bg-white">
+                    <span className="material-symbols-outlined text-slate-400 mb-1">cloud_upload</span>
+                    <span className="text-xs text-slate-500 font-semibold">{image ? image.name : "Click to browse image from your PC"}</span>
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => setImage(e.target.files?.[0] || null)} />
+                 </label>
+              </div>
+
+              <div className="md:col-span-2 space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Brief Description</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full p-3 bg-slate-50/50 border border-slate-200 rounded-lg outline-none text-sm focus:ring-2 focus:ring-blue-500/20 resize-none" placeholder="Describe the project..." rows={3} />
               </div>
             </div>
-            <button onClick={handleSave} className="w-full md:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-blue-700 transition-colors">Save to Portfolio</button>
+
+            <div className="flex justify-end mt-6">
+               <button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg text-xs font-bold transition-all shadow-md">
+                 {loading ? "Uploading..." : "Save Configuration"}
+               </button>
+            </div>
           </div>
         )}
 
-        <div className="bg-slate-50 rounded-xl px-4 py-3 mb-8 border border-slate-100 flex items-center">
-             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-               {searchQuery ? `FOUND: ${filteredProjects.length}` : `TOTAL: ${projects.length} PROJECTS`}
-             </span>
-        </div>
-
-        {filteredProjects.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-200">
-            <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">folder_open</span>
-            <p className="text-slate-400 text-sm font-medium">No projects found.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProjects.map((project) => (
-              <div key={project.id} className="group bg-white rounded-2xl overflow-hidden flex flex-col shadow-sm border border-slate-100 transition-all duration-300 hover:shadow-md">
-                <div className="relative h-44 overflow-hidden bg-slate-100">
-                  <img alt={project.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" src={project.image} />
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-md text-[9px] font-black text-blue-600 tracking-tighter uppercase shadow-sm border border-blue-50">{project.category}</span>
-                  </div>
+        {/* Admin Project List View */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {projects.map((project: any) => {
+            const imageUrl = project.image ? `${API_URL.replace('/api', '')}${project.image}` : null;
+            return (
+              <div key={project.id} className="bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm group hover:shadow-md transition-all">
+                <div className="h-36 overflow-hidden relative bg-slate-100">
+                  {imageUrl ? (
+                     <img src={imageUrl} className="w-full h-full object-cover" alt="" onError={(e: any) => { e.target.style.display = 'none'; }} />
+                  ) : (
+                     <div className="w-full h-full flex items-center justify-center text-slate-300 material-symbols-outlined text-4xl">image</div>
+                  )}
+                  <span className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-[4px] text-[9px] font-extrabold text-blue-600 uppercase tracking-widest">{project.category}</span>
                 </div>
-
-                <div className="p-5 flex flex-col flex-1">
-                  <h3 className="text-base font-bold text-slate-900 mb-1.5 group-hover:text-blue-600 transition-colors line-clamp-1">{project.title}</h3>
-                  <p className="text-slate-500 text-xs leading-relaxed mb-4 line-clamp-2 min-h-[32px]">{project.description}</p>
-                  
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-slate-50">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center">
-                         <span className="material-symbols-outlined text-blue-400 text-[14px]">engineering</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Core Team</span>
-                    </div>
-                    <button 
-                      onClick={() => { if(window.confirm('Delete this project?')) deleteProject(project.id) }} 
-                      className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                <div className="p-4 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 mb-1 truncate">{project.title}</h3>
+                    {project.liveUrl && <p className="text-[10px] text-blue-500 truncate mb-1">{project.liveUrl}</p>}
+                  </div>
+                  <div className="flex justify-end pt-3 mt-2 border-t border-slate-100">
+                    <button onClick={() => handleDelete(project.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">delete</span>
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-
+            );
+          })}
+        </div>
       </main>
     </AdminLayout>
   );

@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // <-- Yeh naya import kiya hai
+import { useNavigate } from "react-router-dom";
 
 interface ServiceModalProps {
   service: any | null; 
@@ -10,9 +10,8 @@ interface ServiceModalProps {
 }
 
 const ServiceModal = ({ service, open, onClose }: ServiceModalProps) => {
-  const navigate = useNavigate(); // <-- Navigation ke liye setup
+  const navigate = useNavigate(); 
 
-  // Jab modal open ho, tab background scroll rokne ke liye
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -24,106 +23,133 @@ const ServiceModal = ({ service, open, onClose }: ServiceModalProps) => {
     };
   }, [open]);
 
-  // CTA Button click hone par yeh function chalega
   const handleCtaClick = () => {
-    onClose(); // Pehle modal band karo
-    navigate("/contact"); // Phir contact page par jao
+    onClose(); 
+    navigate("/contact"); 
   };
 
   if (!service) return null;
+
+  // 🔥 THE FIX: Safe Array Extractors (Ye logic untouched hai taaki crash na ho)
+  const getSafeArray = (data: any) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === 'string') return data.split(',').map(item => item.trim()).filter(Boolean);
+    return [];
+  };
+
+  const safeFeatures = getSafeArray(service.features || service.featuresList);
+  const safeUseCases = getSafeArray(service.useCases);
 
   return (
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 sm:px-6">
-          {/* Background Overlay */}
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
 
-          {/* Modal Content */}
+          {/* Modal Container - Sleek & Professional */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.96, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", duration: 0.5 }}
-            className="relative w-full max-w-2xl bg-[#f8fafc] rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            exit={{ opacity: 0, scale: 0.96, y: 15 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0 }}
+            className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl shadow-slate-900/20 overflow-hidden flex flex-col max-h-[85vh] border border-slate-100"
           >
             {/* Header Section */}
-            <div className="bg-slate-100/50 px-8 py-6 flex items-start justify-between border-b border-slate-200">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-blue-600 text-3xl">web</span>
+            <div className="bg-slate-50/80 px-6 py-5 flex items-start justify-between border-b border-slate-100">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                  {typeof service.icon === 'string' ? (
+                     <span className="material-symbols-outlined text-blue-600 text-[20px]">{service.icon}</span>
+                  ) : (
+                     <span className="material-symbols-outlined text-blue-600 text-[20px]">web</span>
+                  )}
                 </div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight">
-                  {service.title}
-                </h2>
+                <div>
+                  <span className="text-[9px] font-black tracking-widest text-slate-400 uppercase block mb-0.5">Service Details</span>
+                  <h2 className="text-lg md:text-xl font-extrabold text-slate-900 leading-tight tracking-tight">
+                    {service.title}
+                  </h2>
+                </div>
               </div>
               <button 
                 onClick={onClose} 
-                className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-200 rounded-full transition-all shrink-0"
+                className="p-1.5 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-all shrink-0"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Scrollable Content Section */}
-            <div className="p-8 overflow-y-auto no-scrollbar">
-              <p className="text-slate-600 text-base md:text-lg leading-relaxed mb-8">
-                {service.description}
+            <div className="p-6 md:p-8 overflow-y-auto no-scrollbar">
+              <p className="text-slate-600 text-sm leading-relaxed mb-8 font-medium">
+                {service.description || service.shortDescription || "No description provided."}
               </p>
 
               {/* Key Features */}
               <div className="mb-8">
-                <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-                  <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
+                <h3 className="text-xs font-black text-slate-800 mb-4 uppercase tracking-widest flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-blue-600 rounded-full"></span>
                   Key Features
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6">
-                  {service.featuresList && service.featuresList.map((feature: string, idx: number) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" strokeWidth={3} />
-                      <span className="text-base text-slate-600 font-medium leading-tight">{feature}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6">
+                  {safeFeatures.map((feature: string, idx: number) => (
+                    <div key={idx} className="flex items-start gap-2.5">
+                      <div className="mt-0.5 bg-blue-50 rounded-md p-0.5">
+                         <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" strokeWidth={3} />
+                      </div>
+                      <span className="text-sm text-slate-600 font-medium leading-snug">{feature}</span>
                     </div>
                   ))}
-                  {(!service.featuresList || service.featuresList.length === 0) && (
-                    <p className="text-sm text-slate-400 italic">No specific features listed.</p>
+                  {safeFeatures.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">No specific features listed.</p>
                   )}
                 </div>
               </div>
 
-              {/* Use Cases */}
-              <div className="mb-8">
-                <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-6 bg-blue-600 rounded-full"></span>
-                  Ideal For
-                </h3>
-                <div className="flex flex-wrap gap-2.5">
-                  <span className="px-4 py-2 bg-white text-slate-700 text-sm font-bold rounded-full border border-slate-200 shadow-sm">Portfolio sites</span>
-                  <span className="px-4 py-2 bg-white text-slate-700 text-sm font-bold rounded-full border border-slate-200 shadow-sm">Landing pages</span>
-                  <span className="px-4 py-2 bg-white text-slate-700 text-sm font-bold rounded-full border border-slate-200 shadow-sm">Company brochures</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Section (Sticky at bottom) */}
-            <div className="bg-white p-6 md:p-8 border-t border-slate-200">
-              {service.price && (
-                <div className="bg-blue-50 rounded-2xl p-4 mb-4 border border-blue-100 flex justify-center">
-                  <p className="text-blue-700 font-semibold text-lg">Starting from ₹{service.price}</p>
+              {/* Ideal For (Use Cases) */}
+              {safeUseCases.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 mb-4 uppercase tracking-widest flex items-center gap-2">
+                    <span className="w-1.5 h-4 bg-blue-600 rounded-full"></span>
+                    Ideal For
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {safeUseCases.map((useCase: string, idx: number) => (
+                      <span key={idx} className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[11px] font-bold rounded-lg border border-slate-200 shadow-sm transition-colors hover:bg-white hover:border-slate-300">
+                        {useCase}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Footer Section - Compact SaaS Style */}
+            <div className="bg-slate-50 px-6 py-5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="w-full sm:w-auto text-left">
+                {(service.price || service.pricingHint) && (
+                  <>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Investment</p>
+                    <p className="text-blue-600 font-black text-lg tracking-tight">
+                      {service.price ? `₹${service.price}` : service.pricingHint}
+                    </p>
+                  </>
+                )}
+              </div>
               
-              {/* <-- Yahan onClick me handleCtaClick laga diya hai --> */}
               <button 
                 onClick={handleCtaClick}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50"
+                className="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-all shadow-md shadow-blue-600/20 active:scale-95"
               >
-                {service.cta || "Get Started"} <ArrowRight className="w-5 h-5" />
+                {service.cta || "Inquire Now"} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
 

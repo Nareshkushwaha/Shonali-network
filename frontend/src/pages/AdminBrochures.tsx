@@ -1,143 +1,132 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
-import { useData } from "../context/DataContext";
+import axios from "axios";
+import { API_URL } from "../../config/api";
 
 const AdminBrochures = () => {
-  const { brochureRequests, searchQuery } = useData();
+  const [downloads, setDownloads] = useState<any[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
   
-  const [activeBrochure, setActiveBrochure] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const safeRequests = brochureRequests || [];
-  
-  const filteredRequests = safeRequests.filter(req => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      req.email?.toLowerCase().includes(searchLower) ||
-      req.name?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Abhi kaunsi file live hai (Local Storage se padh lenge for simplicity)
+  const [activeBrochureName, setActiveBrochureName] = useState(localStorage.getItem("shonali_active_pdf_name") || "No file uploaded");
+  const [activeBrochureLink, setActiveBrochureLink] = useState(localStorage.getItem("shonali_active_pdf_link") || "");
 
   useEffect(() => {
-    const savedBrochure = localStorage.getItem("activeBrochure");
-    if (savedBrochure) setActiveBrochure(savedBrochure);
+    fetchDownloads();
   }, []);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setActiveBrochure(file.name);
-      localStorage.setItem("activeBrochure", file.name);
-      alert(`✅ Brochure "${file.name}" is now LIVE! Users can download it.`);
+  const fetchDownloads = async () => {
+    try {
+      const token = localStorage.getItem("shonali_token");
+      const res = await axios.get(`${API_URL}/brochures/list`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDownloads(res.data);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return alert("Please select a PDF first!");
+    
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("pdfFile", file);
+
+    try {
+      const token = localStorage.getItem("shonali_token");
+      const res = await axios.post(`${API_URL}/brochures/upload`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data" 
+        }
+      });
+
+      // Saving status to local storage so the public website knows it's available
+      localStorage.setItem("shonali_active_pdf_name", file.name);
+      localStorage.setItem("shonali_active_pdf_link", res.data.fileUrl);
+      
+      setActiveBrochureName(file.name);
+      setActiveBrochureLink(res.data.fileUrl);
+      setFile(null);
+      alert("✅ Brochure Uploaded & Live on Website!");
+      
+    } catch (err) {
+      alert("❌ Upload Failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRemoveBrochure = () => {
-    setActiveBrochure(null);
-    localStorage.removeItem("activeBrochure");
-    alert("Brochure removed. Users can no longer download it.");
-  };
+  const removeBrochure = () => {
+      localStorage.removeItem("shonali_active_pdf_name");
+      localStorage.removeItem("shonali_active_pdf_link");
+      setActiveBrochureName("No file uploaded");
+      setActiveBrochureLink("");
+      alert("Brochure removed from public website!");
+  }
 
   return (
     <AdminLayout>
-      {/* 🔥 Mobile par px-4, Desktop par px-8 */}
-      <main className="pt-10 pb-12 px-4 md:px-8 min-h-screen max-w-7xl mx-auto">
-        
-        {/* Header & Actions */}
-        <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            {/* 🔥 Mobile ke liye text thoda chota (text-xl) aur flex-wrap lagaya */}
-            <h2 className="text-xl md:text-3xl font-extrabold text-blue-700 font-headline flex flex-wrap items-center gap-2 md:gap-3">
-              Brochure Requests
-              {activeBrochure ? (
-                <span className="px-2 md:px-3 py-1 bg-emerald-100 text-emerald-700 text-[8px] md:text-[10px] uppercase tracking-widest font-black rounded-full border border-emerald-200 flex items-center gap-1 shrink-0">
-                  <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                  <span className="truncate max-w-[150px] md:max-w-none">Active: {activeBrochure}</span>
-                </span>
-              ) : (
-                <span className="px-2 md:px-3 py-1 bg-amber-100 text-amber-700 text-[8px] md:text-[10px] uppercase tracking-widest font-black rounded-full border border-amber-200 shrink-0">
-                  No Brochure Uploaded
-                </span>
-              )}
-            </h2>
-            <p className="text-xs md:text-sm text-slate-500 mt-1">Track who downloaded your blueprints and when.</p>
+      <main className="pt-8 px-6 pb-12 max-w-7xl mx-auto min-h-screen">
+        <h2 className="text-2xl font-extrabold text-slate-900 mb-8">Brochure Management</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          {/* Upload Section */}
+          <div className="md:col-span-1 space-y-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h3 className="font-bold text-sm text-slate-500 uppercase mb-4">Current Live File</h3>
+              
+              <div className={`p-4 rounded-xl border-2 border-dashed ${activeBrochureLink ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'} mb-6`}>
+                 <p className={`font-bold ${activeBrochureLink ? 'text-green-700' : 'text-red-500'} text-sm truncate`}>
+                    {activeBrochureName}
+                 </p>
+                 {activeBrochureLink && (
+                    <button onClick={removeBrochure} className="text-xs text-red-500 mt-2 font-bold underline">Remove Access</button>
+                 )}
+              </div>
+
+              <h3 className="font-bold text-sm text-slate-500 uppercase mb-2">Upload New PDF</h3>
+              <input type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} className="w-full text-xs p-2 border rounded-lg mb-4" />
+              <button onClick={handleUpload} disabled={loading} className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg text-sm hover:bg-black transition-colors">
+                {loading ? "Uploading..." : "Make Live on Website"}
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <input 
-              type="file" 
-              accept=".pdf" 
-              ref={fileInputRef} 
-              style={{ display: "none" }} 
-              onChange={handleFileUpload} 
-            />
-
-            {activeBrochure ? (
-              <button 
-                onClick={handleRemoveBrochure} 
-                className="flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg font-bold hover:bg-red-100 transition-colors shadow-sm whitespace-nowrap text-xs md:text-sm"
-              >
-                <span className="material-symbols-outlined text-sm">delete</span>
-                Remove
-              </button>
-            ) : (
-              <button 
-                onClick={() => fileInputRef.current?.click()} 
-                className="flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap text-xs md:text-sm"
-              >
-                <span className="material-symbols-outlined text-sm">upload_file</span>
-                Upload PDF
-              </button>
-            )}
+          {/* Leads/Downloads Section */}
+          <div className="md:col-span-2">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                 <h3 className="font-bold text-slate-800">Download History <span className="ml-2 bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">{downloads.length} Leads</span></h3>
+              </div>
+              <div className="overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                   <thead className="bg-white text-slate-400 text-xs uppercase tracking-wider">
+                     <tr>
+                       <th className="p-4 border-b">Name</th>
+                       <th className="p-4 border-b">Email</th>
+                       <th className="p-4 border-b">Company</th>
+                       <th className="p-4 border-b text-right">Date</th>
+                     </tr>
+                   </thead>
+                   <tbody className="divide-y divide-slate-100">
+                     {downloads.map((d: any) => (
+                        <tr key={d.id} className="hover:bg-slate-50">
+                           <td className="p-4 font-semibold text-slate-800">{d.name}</td>
+                           <td className="p-4 text-slate-500">{d.email}</td>
+                           <td className="p-4 text-slate-500">{d.company}</td>
+                           <td className="p-4 text-right text-slate-400 text-xs">{new Date(d.download_date).toLocaleDateString()}</td>
+                        </tr>
+                     ))}
+                   </tbody>
+                 </table>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Table Section */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-100">
-          {/* 🔥 FIX: table-fixed aur column widths daal di taaki mobile par na kate */}
-          <table className="w-full text-left border-collapse table-fixed">
-            <thead>
-              <tr className="bg-slate-50 text-[8px] md:text-[11px] font-black text-slate-500 uppercase tracking-wider border-b">
-                <th className="w-[10%] px-2 md:px-6 py-3 md:py-4 truncate">ID</th>
-                <th className="w-[20%] px-2 md:px-6 py-3 md:py-4 truncate">Name</th>
-                <th className="w-[25%] px-2 md:px-6 py-3 md:py-4 truncate">Email</th>
-                <th className="w-[15%] px-2 md:px-6 py-3 md:py-4 truncate">Company</th>
-                {/* 🔥 Mobile par sirf "Date" dikhega, PC par "Date Downloaded" */}
-                <th className="w-[15%] px-2 md:px-6 py-3 md:py-4 truncate">Date<span className="hidden md:inline"> Downloaded</span></th>
-                <th className="w-[15%] px-2 md:px-6 py-3 md:py-4 text-center truncate">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filteredRequests.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-10 text-xs md:text-sm text-slate-400">
-                    {searchQuery ? `No requests found matching "${searchQuery}"` : "No matching requests found."}
-                  </td>
-                </tr>
-              ) : (
-                filteredRequests.map(req => (
-                  <tr key={req.id} className="hover:bg-blue-50/30 transition-colors">
-                    {/* 🔥 Mobile par font size text-[8px] ya [9px] hoga taaki fit ho jaye */}
-                    <td className="px-2 md:px-6 py-3 md:py-4 font-mono text-[8px] md:text-xs text-slate-400 truncate">#{req.id}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 font-bold text-slate-900 text-[9px] md:text-sm truncate">{req.name}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-blue-600 italic text-[9px] md:text-sm truncate">{req.email}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-slate-500 text-[9px] md:text-sm truncate">{req.company || "N/A"}</td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-slate-500 font-medium text-[9px] md:text-sm truncate">
-                      {req.date ? new Date(req.date).toLocaleDateString('en-GB') : "18/04/2026"} 
-                    </td>
-                    <td className="px-2 md:px-6 py-3 md:py-4 text-center">
-                      <span className="flex items-center justify-center gap-0.5 md:gap-1 text-emerald-600 font-bold bg-emerald-50 px-1 md:px-2 py-0.5 md:py-1 rounded-md text-[7px] md:text-[10px] w-fit mx-auto border border-emerald-100 truncate max-w-full">
-                        <span className="material-symbols-outlined text-[9px] md:text-sm">check_circle</span> 
-                        <span className="hidden sm:inline">DOWNLOADED</span>
-                        <span className="sm:hidden">DONE</span>
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </main>
     </AdminLayout>
   );

@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { API_URL } from "../context/DataContext"; 
+import { API_URL } from "../../config/api";
 
 const Brochure = () => {
   const [name, setName] = useState("");
@@ -14,13 +14,18 @@ const Brochure = () => {
   const [downloadComplete, setDownloadComplete] = useState(false);
   
   const [isAvailable, setIsAvailable] = useState(false);
-  const [documentName, setDocumentName] = useState("Company Brochure");
+  const [documentName, setDocumentName] = useState("");
+  const [documentLink, setDocumentLink] = useState("");
 
   useEffect(() => {
-    const activeFile = localStorage.getItem("activeBrochure");
-    if (activeFile) {
+    // Admin ne jo file live ki hai, wo local storage se pakdo (simplest logic)
+    const activeFile = localStorage.getItem("shonali_active_pdf_name");
+    const activeLink = localStorage.getItem("shonali_active_pdf_link");
+    
+    if (activeFile && activeLink) {
       setIsAvailable(true);
       setDocumentName(activeFile); 
+      setDocumentLink(activeLink);
     }
   }, []);
 
@@ -38,15 +43,18 @@ const Brochure = () => {
         email: email,
       };
 
-      await axios.post(`${API_URL}/brochures`, payload);
+      // Tracking the request in backend API
+      await axios.post(`${API_URL}/brochures/download`, payload);
 
       setTimeout(() => {
         setIsDownloading(false);
         setDownloadComplete(true);
         
-        // 🔥 FIX: Ab ye "brochure.pdf" ki jagah exact us file ko dhoondhega jo upload hui thi (e.g. /Patna High Court.pdf)
+        // Asli PDF download karwana
+        // (API_URL.replace('/api', '') se base url localhost:5000 nikal liya)
+        const baseUrl = API_URL.replace('/api', ''); 
         const link = document.createElement("a");
-        link.href = `/${documentName}`; // <-- Ye line dynamic kardi hai
+        link.href = `${baseUrl}${documentLink}`; // e.g. localhost:5000/uploads/file.pdf
         link.setAttribute("download", documentName);
         document.body.appendChild(link);
         link.click();
@@ -63,7 +71,7 @@ const Brochure = () => {
     } catch (error) {
       console.error("Failed to track download:", error);
       setIsDownloading(false);
-      alert("Something went wrong. Please try again.");
+      alert("Something went wrong. Please try again later.");
     }
   };
 
@@ -84,12 +92,12 @@ const Brochure = () => {
                 </span>
               </h1>
               <p className="text-slate-500 mb-8 text-lg">
-                Get a comprehensive overview of our services, portfolio, and architecture blueprints in a beautifully designed PDF.
+                Get a comprehensive overview of our services, portfolio, and architecture blueprints.
               </p>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4">What's Inside the Document</h3>
-                {["Company overview & vision", "Complete digital service catalog", "Featured architectural case studies", "Performance marketing metrics", "Client testimonials"].map((item) => (
+                <h3 className="font-bold text-slate-800 uppercase tracking-widest text-xs mb-4">What's Inside</h3>
+                {["Company overview & vision", "Complete digital service catalog", "Featured architectural case studies", "Performance metrics"].map((item) => (
                   <div key={item} className="flex items-center gap-3 text-sm text-slate-600 font-medium">
                     <CheckCircle2 className="w-4 h-4 text-blue-500" />
                     {item}
@@ -100,8 +108,6 @@ const Brochure = () => {
 
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
               <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 relative overflow-hidden">
-                <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-50 rounded-full blur-3xl"></div>
-                
                 <div className="relative z-10">
                   <h3 className="text-2xl font-bold mb-2 text-slate-900">Request Access</h3>
                   
@@ -112,22 +118,22 @@ const Brochure = () => {
                       <p className="text-amber-600 text-sm">We are updating our brochure. Please check back later!</p>
                     </div>
                   ) : downloadComplete ? (
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center animate-in fade-in zoom-in mt-4">
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center mt-4 animate-in fade-in">
                       <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle2 className="w-8 h-8" />
                       </div>
                       <h4 className="text-green-800 font-bold text-lg mb-1">Request Approved!</h4>
-                      <p className="text-green-600 text-sm">Your download has started on your device. We've tracked this request.</p>
+                      <p className="text-green-600 text-sm">Your download has started.</p>
                     </div>
                   ) : (
                     <form onSubmit={handleDownload} className="space-y-4 mt-4">
-                      <p className="text-sm text-slate-500 mb-6">Enter your details to receive the download link immediately.</p>
+                      <p className="text-sm text-slate-500 mb-6">Enter your details to receive the link.</p>
                       <div>
                         <label className="text-xs font-bold text-slate-500 uppercase ml-1">Full Name *</label>
                         <input 
                           type="text" required value={name} onChange={(e) => setName(e.target.value)}
                           className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" 
-                          placeholder="John Doe" 
+                          placeholder="Your Name" 
                         />
                       </div>
                       <div>
@@ -135,7 +141,7 @@ const Brochure = () => {
                         <input 
                           type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                           className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" 
-                          placeholder="john@company.com" 
+                          placeholder="email@example.com" 
                         />
                       </div>
                       <div>
@@ -147,12 +153,9 @@ const Brochure = () => {
                         />
                       </div>
 
-                      <Button disabled={isDownloading} className="w-full h-14 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/30 text-base font-bold transition-all flex items-center justify-center">
+                      <Button disabled={isDownloading} className="w-full h-14 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/30 text-base font-bold flex items-center justify-center">
                         {isDownloading ? "Generating PDF..." : <><Download className="w-5 h-5 mr-2" /> Download Brochure</>}
                       </Button>
-                      <p className="text-center text-[10px] text-slate-400 mt-4 uppercase tracking-widest font-semibold">
-                        Your data is secure with us
-                      </p>
                     </form>
                   )}
                 </div>

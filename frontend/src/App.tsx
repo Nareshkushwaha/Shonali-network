@@ -4,8 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-// Context Import
-import { DataProvider } from "./context/DataContext";
+// ✅ Sahi Provider Import kiya
+import { AppProviders } from "./context/AppProviders";
 
 // Main Website Pages
 import Index from "./pages/Index";
@@ -29,8 +29,8 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    {/* YAHAN DataProvider se poori app ko wrap kiya gaya hai */}
-    <DataProvider> 
+    {/* ✅ FIX: Purane DataProvider ko hata kar AppProviders lagaya */}
+    <AppProviders> 
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -53,12 +53,12 @@ const App = () => (
             <Route path="/admin-settings" element={<AdminSettings />} />
             <Route path="/admin-brochures" element={<AdminBrochures />} />
 
-            {/* NotFound (404) Route Hamesha Sabse Last Mein Hona Chahiye */}
+            {/* NotFound (404) Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
-    </DataProvider>
+    </AppProviders>
   </QueryClientProvider>
 );
 
