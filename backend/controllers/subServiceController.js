@@ -30,4 +30,22 @@ const addService = async (req, res) => {
     }
 };
 
-module.exports = { getServices, addService };
+// 🔥 NAYA CODE: Sub-service ko delete karne wala controller
+const deleteService = async (req, res) => {
+    try {
+        const { id } = req.params; // URL se ID nikal li
+        const result = await SubService.deleteSubService(id);
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Sub-Service pehle hi delete ho chuki hai ya mili nahi!' });
+        }
+        
+        res.status(200).json({ message: 'Sub-Service successfully ud gayi!' });
+    } catch (error) {
+        console.error("🔥 Delete Error:", error);
+        res.status(500).json({ message: 'Delete karne mein error aayi', error: error.message });
+    }
+};
+
+// Yahan deleteService ko export karna mat bhulna
+module.exports = { getServices, addService, deleteService };

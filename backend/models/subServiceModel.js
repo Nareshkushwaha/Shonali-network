@@ -32,4 +32,10 @@ const createSubService = async (data) => {
     };
 };
 
-module.exports = { getAllSubServices, createSubService };
+// 🔥 NAYA CODE: Database se Sub-Service udane ke liye
+const deleteSubService = async (id) => {
+    const [result] = await db.execute('DELETE FROM sub_services WHERE id = ?', [id]);
+    return result;
+};
+
+module.exports = { getAllSubServices, createSubService, deleteSubService };
