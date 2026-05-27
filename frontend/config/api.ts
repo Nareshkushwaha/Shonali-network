@@ -1,15 +1,17 @@
-// Ye check karega ki localhost, 127.0.0.1, ya 192.168.x.x (Local WiFi IP) hai ya nahi
+// 1. Ye check karega ki aap local machine par ho ya nahi
 const isLocalhost = 
   window.location.hostname === "localhost" || 
   window.location.hostname === "127.0.0.1" || 
   window.location.hostname.startsWith("192.168.");
 
-// Agar local hai, toh port 5000 ko hit karega, warna Shonali Network ki live API
-export const API_URL = isLocalhost 
-  ? `http://${window.location.hostname}:5000/api` 
-  : "https://shonalinetworks.com/api";
+// 2. SMART AUTO-DETECTION LOGIC (Local, IP, aur Domain sabke liye)
+export const API_URL = isLocalhost
+  ? `http://${window.location.hostname}:5000/api` // 👉 लोकल लैपटॉप के लिए (Port 5000)
+  : window.location.hostname.includes("shonalinetworks.com")
+    ? "https://shonalinetworks.com/api"            // 👉 जब आप shonalinetworks.com डोमेन से खोलेंगे
+    : "http://72.61.170.129:5000/api";             // 👉 जब आप लाइव सर्वर की IP से खोलेंगे
 
-// 🔥 Ye line F12 Console mein sach bata degi
+// F12 Console me check karne ke liye
 console.log("🚀 Current API is hitting:", API_URL);
 
 export const getAuthHeaders = () => {
